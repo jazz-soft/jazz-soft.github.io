@@ -43,7 +43,7 @@ function centerDiv(div){
 }
 function hideLoading(){
  if (!loading) return;
- loading.parentElement.removeChild(loading);
+ if (loading.parentElement) loading.parentElement.removeChild(loading);
 }
 function play() {
   showLoading();
