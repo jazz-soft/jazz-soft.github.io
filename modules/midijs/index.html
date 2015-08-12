@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+ <title>MIDI.js test</title>
+<style type="text/css">
+.loading {
+ color:#444;
+ background:#ffb;
+ padding:.5em;
+}
+.loading img {
+ padding:0;
+ margin:0;
+ vertical-align: middle;
+}
+</style>
+<script src="../../javascript/JZZ.js"></script>
+<script src="../../javascript/MIDI.js"></script>
+<script src="../../javascript/JZZ.synth.MIDIjs.js"></script>
+<script><!--
+var preload = [];
+preload[0] = new Image(); preload[0].src = '../../img/ke.gif';
+preload[1] = new Image(); preload[1].src = '../../img/yb.gif';
+preload[2] = new Image(); preload[2].src = '../../img/oa.gif';
+preload[3] = new Image(); preload[3].src = '../../img/rd.gif';
+var loading;
+
+function showLoading(){
+ if (loading) return;
+ loading = document.createElement('DIV');
+ loading.innerHTML = '<img src=../../img/ke.gif><img src=../../img/yb.gif><img src=../../img/oa.gif><img src=../../img/rd.gif> MIDI.js loading...';
+ loading.className = 'loading';
+ loading.style.position = 'fixed';
+ document.body.appendChild(loading);
+ centerDiv(loading);
+}
+function centerDiv(div){
+ var r = div.getBoundingClientRect();
+ var w = window.innerWidth;
+ var h = window.innerHeight;
+ div.style.top = (h+r.top-r.bottom)/2+'px';
+ div.style.left = (w+r.left-r.right)/2+'px';
+}
+function hideLoading(){
+ if (!loading) return;
+ loading.parentElement.removeChild(loading);
+}
+function play() {
+  showLoading();
+  JZZ.synth.MIDIjs('MIDI.js', { soundfontUrl: "./soundfont/", instrument: "acoustic_grand_piano" })
+    .or(function(){ hideLoading(); alert('Cannot load MIDI.js '+this.err()); })
+    .and(function(){ hideLoading(); })
+    .note(0, 'C5', 127, 500).wait(500)
+    .note(0, 'E5', 127, 500).wait(500)
+    .note(0, 'G5', 127, 500).wait(500)
+    .note(0, 'C6', 127, 500);
+}
+--></script>
+
+</head>
+
+<body>
+<h1>MIDI.js test</h1>
+<button onclick='play();'>Press to play!</button>
+
+</body>
+</html>
