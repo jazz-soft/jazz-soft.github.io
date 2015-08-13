@@ -21,12 +21,7 @@
   function _release(port, name) {
     port._impl = {
       name: name,
-      info: {
-        name: name,
-        manufacturer: '',
-        version: '0.0',
-        engine: 'MIDI.js'            
-      },
+      info: _engine._info(name),
       _send: _send
     };
     port._resume();
@@ -43,11 +38,23 @@
   }
 
   var _engine = {};
+
+  _engine._info = function(name) {
+    if (!name) name = 'MIDI.js';
+    return {
+      type: 'MIDI.js',
+      name: name,
+      manufacturer: '',
+      version: '0.0'
+    };
+  }
+
   _engine._openOut = function(port, name) {
     if (_running) {
       _release(port, name);
       return;
     }
+    port._pause();
     _ports.push([port, name]);
     if (_waiting) return;
     _waiting = true;
@@ -59,8 +66,8 @@
       MIDI.loadPlugin(arg);
     }
     catch(e) {
-      _err = 'shit!';
-      _onerror(e);
+      _err = e.message;
+      _onerror(_err);
     }
   }
 
@@ -69,10 +76,9 @@
     return JZZ._openMidiOut(name, _engine);
   }
 
-  JZZ.synth.MIDIjs.register = function(name) {
-    JZZ._register();
+  JZZ.synth.MIDIjs.register = function(name, arg) {
+    if (!_running && !_waiting) _engine._arg = arg;
+    return JZZ._registerMidiOut(name, _engine);
   }
-
-//MIDI.setVolume(0, 127);
 
 })();
