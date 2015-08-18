@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+ <title>JZZ.synth.OSC demo</title>
+<script src="../../javascript/JZZ.js"></script>
+<script src="../../javascript/JZZ.synth.OSC.js"></script>
+<script><!--
+function play() {
+  JZZ.synth.OSC()
+    .or(function(){ alert('Cannot open MIDI-Out! ' + this.err()); })
+    .note(0, 'C5', 127, 500).wait(500)
+    .note(0, 'E5', 127, 500).wait(500)
+    .note(0, 'G5', 127, 500).wait(500)
+    .note(0, 'C6', 127, 500);
+}
+--></script>
+</head>
+
+<body>
+<h1>JZZ.synth.OSC demo</h1>
+<button onclick='play();'>Press to play!</button>
+<p id=note>
+</p>
+<script><!--
+var ac = window.AudioContext || window.webkitAudioContext;
+if (!ac) document.getElementById('note').innerHTML = 'NOTE: This browser does not support AudioContext.';
+--></script>
+
+</body>
+</html>
