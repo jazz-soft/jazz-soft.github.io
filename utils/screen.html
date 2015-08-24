@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Screen Size</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+<h1>Screen Size</h1>
+<div id=out></div>
+<script><!--
+var out = document.getElementById('out');
+function getSize(){
+ out.innerHTML
+ = '<p>screen width: ' + screen.width + '</p>'
+ + '<p>screen height: ' + screen.height + '</p>'
+ + '<p>window width: ' + window.innerWidth + '</p>'
+ + '<p>window height: ' + window.innerHeight + '</p>';
+}
+window.addEventListener('resize', getSize);
+getSize();
+--></script>
+<p>
+<a href=index.html>Back</a>
+</p>
+</body>
+</html>
