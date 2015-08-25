@@ -15,13 +15,12 @@ function iosFix() {
     if (!context.createGain) context.createGain = context.createGainNode;
     var osc = context.createOscillator();
     var gain = context.createGain();
-    gain.gain.value = 1;
+    gain.gain.value = 0;
     osc.connect(gain);
     gain.connect(context.destination);
     if (!osc.start) osc.start = osc.noteOn;
     if (!osc.stop) osc.stop = osc.noteOff;
-    osc.start(0); osc.stop(3);
-    //window.setTimeout(function(){osc.stop(0);}, 50);
+    osc.start(0); osc.stop(1);
   }
   catch(e) {
     alert('error: ' + e);
