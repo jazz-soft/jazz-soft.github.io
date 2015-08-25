@@ -16,11 +16,11 @@ function iosFix() {
     var context = new AudioContext();
     var osc = context.createOscillator();
     var gain = context.createGain();
-    gain.gain.value = 0;
+    gain.gain.value = 1;
     osc.connect(gain);
     gain.connect(context.destination);
-    osc.start();
-    window.setTimeout(function(){osc.stop();}, 10);
+    osc.start(0);
+    window.setTimeout(function(){osc.stop(0);}, 10);
   }
   catch(e) {
     alert('error: ' + e);
