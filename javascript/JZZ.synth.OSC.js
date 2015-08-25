@@ -45,7 +45,6 @@
         if (this.oscillator) this.oscillator.stop(0);
       }
       catch (e) {}
-      if (this.oscillator) this.oscillator.stop(0);
       if (!v) return;
       var ampl = v/127;
       this.oscillator = _ac.createOscillator();
