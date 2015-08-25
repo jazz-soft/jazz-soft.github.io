@@ -43,7 +43,10 @@
     this.play = function(v) {
 try {
 alert('note: ' + v);
-      if (this.oscillator) this.oscillator.stop(0);
+      try {
+        if (this.oscillator) this.oscillator.stop(0);
+      }
+      catch(e) {}
       if (!v) return;
       var ampl = v/127;
       this.oscillator = _ac.createOscillator();
