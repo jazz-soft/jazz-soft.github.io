@@ -14,16 +14,15 @@ function iosFix() {
     var AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) return;
     var context = new AudioContext();
-    //if (!context.createGain) context.createGain = context.createGainNode;
+    if (!context.createGain) context.createGain = context.createGainNode;
     var osc = context.createOscillator();
-alert('creating gain');
-    var gain = context.createGain ? context.createGain() : context.createGainNode();
+    var gain = context.createGain(); // ? context.createGain() : context.createGainNode();
 alert('gain created');
     gain.gain.value = 1;
     osc.connect(gain);
     gain.connect(context.destination);
 alert('starting');
-    osc.start(0);
+    osc.start ? osc.start(0) : osc.noteOn(0);
     window.setTimeout(function(){osc.stop(0);}, 50);
   }
   catch(e) {
