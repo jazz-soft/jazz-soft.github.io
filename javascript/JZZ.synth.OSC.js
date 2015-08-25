@@ -40,7 +40,7 @@
     this.channel = c;
     this.freq = 440 * Math.pow(2,(n-69)/12);
     this.play = function(v) {
-      if (this.oscillator) this.oscillator.stop();
+      if (this.oscillator) this.oscillator.stop(0);
       if (!v) return;
       var ampl = v/127;
       this.oscillator = _ac.createOscillator();
@@ -56,7 +56,7 @@
       this.oscillator.connect(this.gain);
       this.gain.connect(_ac.destination);
 
-      this.oscillator.start();
+      this.oscillator.start(0);
     }
   }
 
