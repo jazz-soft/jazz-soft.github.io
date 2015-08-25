@@ -20,7 +20,7 @@ function iosFix() {
     gain.connect(context.destination);
     if (!osc.start) osc.start = osc.noteOn;
     if (!osc.stop) osc.stop = osc.noteOff;
-    osc.start(0); osc.stop(10);
+    osc.start(0); osc.stop(3);
     //window.setTimeout(function(){osc.stop(0);}, 50);
   }
   catch(e) {
@@ -31,8 +31,8 @@ function play() {
   iosFix();
   JZZ.synth.OSC()
     .or(function(){ alert('Cannot open MIDI-Out! ' + this.err()); })
-    .and(function(){ alert('JZZ.synth.OSC loaded'); })
     .note(0, 'C5', 127, 500).wait(500)
+    .note(0, 'G5', 127, 500).wait(500)
     .note(0, 'C6', 127, 500);
 }
 --></script>
