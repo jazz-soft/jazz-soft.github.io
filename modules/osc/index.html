@@ -9,7 +9,7 @@
 var iosFixDone;
 function iosFix() {
   if (iosFixDone) return;
-  iosFixDone = true;
+  //iosFixDone = true;
   var AudioContext = window.AudioContext || window.webkitAudioContext;
   if (!AudioContext) return;
   var context = new AudioContext();
@@ -18,8 +18,7 @@ function iosFix() {
   gain.gain.value = 0;
   osc.connect(gain);
   gain.connect(context.destination);
-  osc.start();
-  window.setTimeout(function(){osc.stop();}, 10);
+  osc.start(0); osc.stop(1);
 }
 function play() {
   iosFix();
