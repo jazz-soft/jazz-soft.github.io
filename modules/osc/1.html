@@ -4,7 +4,7 @@
 <title>JZZ.synth.OSC demo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="../../javascript/JZZ.js"></script>
-<script src="../../javascript/JZZ.synth.OSC.js"></script>
+<script src="../../javascript/JZZ.synth.OSC.dbg.js"></script>
 <script><!--
 var iosFixDone;
 function iosFix() {
@@ -14,13 +14,14 @@ function iosFix() {
     var AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) return;
     var context = new AudioContext();
+    if (!context.createGain) context.createGain = context.createGainNode;
     var osc = context.createOscillator();
     var gain = context.createGain();
     gain.gain.value = 1;
     osc.connect(gain);
     gain.connect(context.destination);
     osc.start(0);
-    window.setTimeout(function(){osc.stop(0);}, 10);
+    window.setTimeout(function(){osc.stop(0);}, 50);
   }
   catch(e) {
     alert('error: ' + e);
@@ -30,6 +31,7 @@ function play() {
   iosFix();
   JZZ.synth.OSC()
     .or(function(){ alert('Cannot open MIDI-Out! ' + this.err()); })
+    .and(function(){ alert('JZZ.synth.OSC loaded'); })
     .note(0, 'C5', 127, 500).wait(500)
     .note(0, 'E5', 127, 500).wait(500)
     .note(0, 'G5', 127, 500).wait(500)
