@@ -49,6 +49,8 @@ alert('note: ' + v);
       this.oscillator = _ac.createOscillator();
       this.oscillator.type = 'sawtooth';
       this.oscillator.frequency.value = this.freq;
+      if (!this.oscillator.start) this.oscillator.start = this.oscillator.noteOn;
+      if (!this.oscillator.stop) this.oscillator.stop = this.oscillator.noteOff;
 
       this.gain = _ac.createGain();
       var releaseTime = 2;
