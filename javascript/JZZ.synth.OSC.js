@@ -5,6 +5,7 @@
   var _ac;
   var AudioContext = window.AudioContext || window.webkitAudioContext;
   if (AudioContext) _ac = new AudioContext();
+  if (!_ac.createGain) _ac.createGain = _ac.createGainNode;  // old versions of Web Audio
 
   function Synth() {
     this.channels = [];
