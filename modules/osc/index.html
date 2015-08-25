@@ -6,7 +6,23 @@
 <script src="../../javascript/JZZ.js"></script>
 <script src="../../javascript/JZZ.synth.OSC.js"></script>
 <script><!--
+var iosFixDone;
+function iosFix() {
+  if (iosFixDone) return;
+  iosFixDone = true;
+  var AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return;
+  var context = new AudioContext();
+  var osc = context.createOscillator();
+  var gain = context.createGain();
+  gain.gain.value = 0;
+  osc.connect(gain);
+  gain.connect(context.destination);
+  osc.start();
+  window.setTimeout(function(){osc.stop();}, 10);
+}
 function play() {
+  iosFix();
   JZZ.synth.OSC()
     .or(function(){ alert('Cannot open MIDI-Out! ' + this.err()); })
     .note(0, 'C5', 127, 500).wait(500)
