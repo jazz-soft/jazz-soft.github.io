@@ -13,13 +13,21 @@ function iosFix() {
     iosFixDone = true;
     var AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) return;
+alert(1);
     var context = new AudioContext();
+alert(2);
     var osc = context.createOscillator();
+alert(3);
     var gain = context.createGain();
+alert(4);
     gain.gain.value = 0;
+alert(5);
     osc.connect(gain);
+alert(6);
     gain.connect(context.destination);
+alert(7);
     osc.noteOn(0);
+alert(8);
     window.setTimeout(function(){osc.noteOff(0);}, 10);
   }
   catch(e) {
