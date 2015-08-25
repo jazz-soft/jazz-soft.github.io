@@ -5,7 +5,7 @@
   var _ac;
   var AudioContext = window.AudioContext || window.webkitAudioContext;
   if (AudioContext) _ac = new AudioContext();
-  if (!_ac.createGain) _ac.createGain = _ac.createGainNode;  // old versions of Web Audio
+  if (!_ac.createGain) _ac.createGain = _ac.createGainNode;
 
   function Synth() {
     this.channels = [];
@@ -41,12 +41,18 @@
     this.channel = c;
     this.freq = 440 * Math.pow(2,(n-69)/12);
     this.play = function(v) {
+      try {
+        if (this.oscillator) this.oscillator.stop(0);
+      }
+      catch (e) {}
       if (this.oscillator) this.oscillator.stop(0);
       if (!v) return;
       var ampl = v/127;
       this.oscillator = _ac.createOscillator();
       this.oscillator.type = 'sawtooth';
       this.oscillator.frequency.value = this.freq;
+      if (!this.oscillator.start) this.oscillator.start = this.oscillator.noteOn;
+      if (!this.oscillator.stop) this.oscillator.stop = this.oscillator.noteOff;
 
       this.gain = _ac.createGain();
       var releaseTime = 2;
