@@ -78,8 +78,8 @@
     if (arguments.length == 1) synth = arguments[0];
     else { name = arguments[0]; synth = arguments[1];}
     name = _name(name);
-    if (!_loaded() || _synth[name] || !_valid(synth)) return false;
-    _synth[name] = new Synth(name, synth);
+    if (!_loaded() || !_valid(synth)) return false;
+    if (!_synth[name]) _synth[name] = new Synth(name, synth);
     return JZZ.lib.registerMidiOut(name, _engine);
   }
 

@@ -19,16 +19,9 @@
 var out = document.getElementById('out');
 out.innerHTML = "<p>Reading MIDI info...</p>";
 JZZ.synth.MIDIjs.register();
-JZZ.synth.MIDIjs.register();
-
-try {
+if (typeof T !== 'undefined' && T instanceof Function && T.version) {
   JZZ.synth.Timbre.register(T("OscGen"));
-  JZZ.synth.Timbre.register(T("OscGen"));
-} catch(e) {}
-
-JZZ.synth.Timbre.register({});
-
-JZZ.synth.OSC.register();
+}
 JZZ.synth.OSC.register();
 JZZ().and(function(){
   var s1 = "";
