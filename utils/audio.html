@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Web Audio & MIDI</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+<h1>Web Audio & MIDI</h1>
+<div id=out><p>JavaScript is disabled</p></div>
+<script><!--
+var out = document.getElementById('out');
+var ac;
+var audio = "<p>Web Audio is not supported</p>";
+var midi = "<p>Web MIDI is not supported</p>";
+if (window.AudioContext) {
+  ac = window.AudioContext;
+  audio = "Web Audio: AudioContext";
+}
+else if (window.webkitAudioContext) {
+  ac = window.webkitAudioContext;
+  audio = "Web Audio: webkitAudioContext";
+}
+if (ac) {
+  ct = new ac();
+  audio += ct.createGain ? " (new version)" : " (legacy version)";
+  audio = "<p>" + audio + "</p>";
+}
+function onGood() {
+  midi += "<p>Sysex messages are enabled</p>";
+  out.innerHTML = audio + midi;
+}
+function onBad() {
+  midi += "<p>Sysex messages are disabled</p>";
+  out.innerHTML = audio + midi;
+}
+if (navigator.requestMIDIAccess) {
+  midi = "<p>Web MIDI is supported</p>";
+  navigator.requestMIDIAccess({sysex:true}).then(onGood, onBad);
+}
+out.innerHTML = audio + midi;
+--></script>
+<p>
+<a href=index.html>Back</a>
+</p>
+</body>
+</html>
