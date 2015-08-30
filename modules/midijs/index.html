@@ -49,7 +49,7 @@ function hideLoading(){
 function play() {
   JZZ.util.iosSound();
   showLoading();
-  JZZ.synth.MIDIjs('MIDI.js', { soundfontUrl: "./soundfont/", instrument: "acoustic_grand_piano" })
+  JZZ.synth.MIDIjs({ soundfontUrl: "./soundfont/", instrument: "acoustic_grand_piano" })
     .or(function(){ hideLoading(); alert('Cannot load MIDI.js '+this.err()); })
     .and(function(){ hideLoading(); })
     .note(0, 'C5', 127, 500).wait(500)
@@ -64,6 +64,10 @@ function play() {
 <body>
 <h1>JZZ.synth.MIDIjs demo</h1>
 <button onclick='play();'>Press to play!</button>
+
+<p>
+<a href=../index.html>Back</a>
+</p>
 
 </body>
 </html>

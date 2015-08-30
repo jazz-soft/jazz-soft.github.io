@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>JZZ.synth.Timbre demo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="../../javascript/timbre.js"></script>
+<script src="../../javascript/JZZ.js"></script>
+<script src="../../javascript/JZZ.synth.Timbre.js"></script>
+<script><!--
+var synth1;
+var synth2;
+var synth3;
+if (typeof T !== 'undefined' && T.version) {
+  var env = T("perc", {a:50, r:2500});
+  var osc = T("pulse");
+  synth1 = T("PluckGen", {env:env, mul:0.5}).play();
+  synth2 = T("OscGen", {osc:osc, env:env, mul:0.15}).play();
+  synth3 = T("SynthDef").play();
+  synth3.def = function(opts) {
+    var osc1, osc2, env;
+    osc1 = T("sin", {freq:opts.freq, mul:0.25});
+    osc2 = T("sin", {freq:opts.freq + 8, mul:0.25});
+    env  = T("linen", {s:450, r:2500, lv:0.5}, osc1, osc2);
+    return env.on("ended", opts.doneAction).bang();
+  };
+}
+function play1() {
+  JZZ.util.iosSound();
+  JZZ.synth.Timbre('Timbre PluckGen', synth1)
+    .or(function(){ alert('Cannot open MIDI-Out! ' + this.err()); })
+    .note(0, 'C5', 127, 500).wait(500)
+    .note(0, 'E5', 127, 500).wait(500)
+    .note(0, 'G5', 127, 500).wait(500)
+    .note(0, 'C6', 127, 500).wait(1000).allSoundOff(0);
+}
+function play2() {
+  JZZ.util.iosSound();
+  JZZ.synth.Timbre('Timbre OscGen', synth2)
+    .or(function(){ alert('Cannot open MIDI-Out! ' + this.err()); })
+    .note(0, 'C5', 127, 500).wait(500)
+    .note(0, 'E5', 127, 500).wait(500)
+    .note(0, 'G5', 127, 500).wait(500)
+    .note(0, 'C6', 127, 500).wait(1000).allSoundOff(0);
+}
+function play3() {
+  JZZ.util.iosSound();
+  JZZ.synth.Timbre('Timbre SynthDef', synth3)
+    .or(function(){ alert('Cannot open MIDI-Out! ' + this.err()); })
+    .note(0, 'C5', 127, 500).wait(500)
+    .note(0, 'E5', 127, 500).wait(500)
+    .note(0, 'G5', 127, 500).wait(500)
+    .note(0, 'C6', 127, 500).wait(1000).allSoundOff(0);
+}
+--></script>
+</head>
+
+<body>
+<h1>JZZ.synth.Timbre demo</h1>
+<button onclick='play1();'>T("PluckGen")</button>
+<button onclick='play2();'>T("OscGen")</button>
+<button onclick='play3();'>T("SynthDef")</button>
+
+<p id=note>
+</p>
+<script><!--
+var ac = window.AudioContext || window.webkitAudioContext;
+if (!ac) document.getElementById('note').innerHTML = 'NOTE: This browser does not support AudioContext.';
+--></script>
+
+<p>
+<a href=../index.html>Back</a>
+</p>
+
+</body>
+</html>

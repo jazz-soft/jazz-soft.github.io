@@ -1,1 +1,1 @@
-[![mozart](http://jazz-soft.github.io/img/mozart.jpg)](http://jazz-soft.github.io)
+[![mozart](http://jazz-soft.github.io/img/mozart.jpg)](https://jazz-soft.github.io)
