@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>JZZ CRX test</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="../javascript/JZZ.js"></script>
+<script><!--
+function player(name) {
+  return function() {
+    JZZ().openMidiOut(name)
+       .wait(500).send([0x90,60,127])
+       .wait(500).send([0x90,64,127])
+       .wait(500).send([0x90,67,127])
+       .wait(500).send([0x90,72,127])
+       .wait(500).send([0x90,60,0]).send([0x90,64,0]).send([0x90,67,0]).send([0x90,72,0]);
+  }
+}
+var output = [];
+function listen(name) {
+  JZZ().openMidiIn(name).connect(function(msg) {
+     output.push(name + " : " + msg.toString());
+     if (output.length > 10) output.splice(0, 1);
+     document.getElementById("midiIn").innerHTML = output.join("\n");
+  });
+}
+--></script>
+
+</head>
+
+<body>
+<h1>JZZ <span id="jzzVersion">0.0</span> CRX test</h1>
+<p>This page requires <a href=https://chrome.google.com/webstore/detail/jazz-midi/jhdoobfdaejmldnpihidjemjcbpfmbkm>Jazz-MIDI</a> extension.</p>
+<div id=out></div>
+<pre id="midiIn">
+</pre>
+
+<p>
+<a href=index.html>Back</a>
+</p>
+
+<script><!--
+document.getElementById("jzzVersion").innerHTML = 'v.' + JZZ.info().ver;
+
+var out = document.getElementById('out');
+var div;
+var btn;
+var span;
+
+JZZ({engine:'crx'}).or(function(){
+    div = document.createElement('div');
+    div.textContent = "Jazz-MIDI extension is not available or no MIDI ports found.";
+    out.appendChild(div);
+  }).and(function(){
+    var outs = this.info().outputs;
+    var ins = this.info().inputs;
+    div = document.createElement('div');
+    div.textContent = outs.length ? "MIDI Out:" : "MIDI Out: not found!";
+    out.appendChild(div);
+    for (var i = 0; i < outs.length; i++) {
+      div = document.createElement('div');
+      btn = document.createElement('button');
+      btn.textContent = "play";
+      btn.onclick = player(outs[i].name);
+      div.appendChild(btn);
+      span = document.createElement('span');
+      span.textContent = " - " + outs[i].name;
+      div.appendChild(span);
+      out.appendChild(div);
+    }
+    div = document.createElement('div');
+    div.textContent = ins.length ? "MIDI In:" : "MIDI In: not found!";
+    out.appendChild(div);
+    for (var i = 0; i < ins.length; i++) {
+      div = document.createElement('div');
+      span = document.createElement('span');
+      span.textContent = "listening: - " + ins[i].name;
+      div.appendChild(span);
+      out.appendChild(div);
+      listen(ins[i].name);
+    }
+  });
+--></script>
+
+</body>
+</html>

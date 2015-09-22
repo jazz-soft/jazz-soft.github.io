@@ -1,6 +1,6 @@
 (function() {
 
-  var _version = '0.2.2';
+  var _version = '0.2.5';
 
   // _R: common root for all async objects
   function _R() {
@@ -104,7 +104,7 @@
     }
     return obj;
   }
-  _J.prototype._info = { name: 'JZZ.js', version: _version };
+  _J.prototype._info = { name: 'JZZ.js', ver: _version };
   _J.prototype.info = function() { return _clone(this._info); }
 
   var _outs = [];
@@ -112,6 +112,7 @@
 
   function _postRefresh() {
     this._info.engine = _engine._type;
+    this._info.version = _engine._version;
     this._info.inputs = [];
     this._info.outputs = [];
     _outs = [];
@@ -356,8 +357,7 @@
         self._resume();
       }
       function onBad(msg) {
-        self._break(msg);
-        self._resume();
+        self._crash(msg);
       }
       var opt = {};
       if (this._options && this._options.sysex === true) opt.sysex = true;
@@ -367,16 +367,75 @@
     }
     this._break();
   }
+  // Chrome CRX
+  function _tryCRX() {
+    var self = this;
+    var inst;
+    var msg;
+    function eventHandle(e) {
+      inst = true;
+      if (!msg) msg = document.getElementById('jazz-midi-msg');
+      if (!msg) return;
+      var a = [];
+      try { a = JSON.parse(msg.innerText);} catch (e) {}
+      msg.innerText = '';
+      document.removeEventListener('jazz-midi-msg', eventHandle);
+      if (a[0] === 'version') {
+        _initCRX(msg, a[2]);
+        self._resume();
+      }
+      else {
+        self._crash();
+      }
+    }
+    this._pause();
+    document.addEventListener('jazz-midi-msg', eventHandle);
+    try { document.dispatchEvent(new Event('jazz-midi'));} catch (e) {}
+    window.setTimeout(function() { if (!inst) self._crash();}, 0);
+  }
+
   function _zeroBreak() {
     this._pause();
     var self = this;
     setTimeout(function(){ self._crash();}, 0);
   }
 
+  function _filterEngines(opt) {
+    if (!opt || !opt.engine) return [_tryNODE, _zeroBreak, _tryCRX, _tryJazzPlugin, _tryWebMIDI, _initNONE];
+    var arr = opt.engine instanceof Array ? opt.engine : [opt.engine];
+    var dup = {};
+    var none;
+    var etc;
+    var head = [];
+    var tail = [];
+    var hash = {crx: _tryCRX, npapi: _tryJazzPlugin, webmidi: _tryWebMIDI};
+    var web = ['crx', 'webmidi', 'npapi'];
+    for (var i=0; i<arr.length; i++) {
+      var name = arr[i].toString().toLowerCase();
+      if (dup[name]) continue;
+      dup[name] = true;
+      if (name === 'none') none = true;
+      if (name === 'etc') etc = true;
+      if (!hash[name]) continue;
+      if (etc) tail.push(name); else head.push(name);
+      _pop(web, name);
+    }
+    if (etc || head.length || tail.length) none = false;
+    if (none) return [_zeroBreak, _initNONE];
+    var ret = [_tryNODE, _zeroBreak];
+    for (var i=0; i<head.length; i++) ret.push(hash[head[i]]);
+    if (etc) {
+      for (var i=0; i<web.length; i++) ret.push(hash[web[i]]);
+      for (var i=0; i<tail.length; i++) ret.push(hash[tail[i]]);
+    }
+    ret.push(_initNONE);
+    return ret;
+  }
+
   function _initJZZ(opt) {
     _jzz = new _J();
     _jzz._options = opt;
-    _jzz._push(_tryAny, [[_tryNODE, _zeroBreak, _tryJazzPlugin, _tryWebMIDI, _initNONE]]);
+    _jzz._push(_tryAny, [_filterEngines(opt)]);
     _jzz.refresh();
     _jzz._push(_initTimer, []);
     _jzz._push(function(){ if (!_outs.length && !_ins.length) this._break(); }, []);
@@ -394,6 +453,7 @@
     _engine._outArr = [];
     _engine._inMap = {};
     _engine._outMap = {};
+    _engine._version = _engine._main.version;
     _engine._refresh = function() {
       _engine._outs = [];
       _engine._ins = [];
@@ -536,6 +596,7 @@
   }
   function _initWebMIDI(access) {
     _engine._type = 'webmidi';
+    _engine._version = 43;
     _engine._access = access;
     _engine._inMap = {};
     _engine._outMap = {};
@@ -627,11 +688,161 @@
     _engine._close = function() {
     }
   }
+  function _initCRX(msg, ver) {
+    _engine._type = 'crx';
+    _engine._version = ver;
+    _engine._pool = [];
+    _engine._inArr = [];
+    _engine._outArr = [];
+    _engine._inMap = {};
+    _engine._outMap = {};
+    _engine._msg = msg;
+    _engine._newPlugin = function() {
+      var plugin = { id: _engine._pool.length };
+      if (!plugin.id) plugin.ready = true;
+      else document.dispatchEvent(new CustomEvent('jazz-midi', {detail:['new']}));
+      _engine._pool.push(plugin);
+    }
+    _engine._newPlugin();
+    _engine._refresh = function() {
+      _engine._outs = [];
+      _engine._ins = [];
+      _jzz._pause();
+      document.dispatchEvent(new CustomEvent('jazz-midi', {detail:['refresh']}));
+    }
+    _engine._openOut = function(port, name) {
+      var impl = _engine._outMap[name];
+      if (!impl) {
+        if (_engine._pool.length <= _engine._outArr.length) _engine._newPlugin();
+        var plugin = _engine._pool[_engine._outArr.length];
+        impl = {
+          name: name,
+          clients: [],
+          info: {
+            name: name,
+            manufacturer: _engine._allOuts[name].manufacturer,
+            version: _engine._allOuts[name].version,
+            type: 'MIDI-out',
+            engine: _engine._type            
+          },
+          _start: function(){ document.dispatchEvent(new CustomEvent('jazz-midi', {detail:['openout', plugin.id, name]})); },
+          _close: function(port){ _engine._closeOut(port); },
+          _send: function(a){ var v = a.slice(); v.splice(0, 0, 'play', plugin.id); document.dispatchEvent(new CustomEvent('jazz-midi', {detail: v})); }
+        };
+        impl.plugin = plugin;
+        plugin.output = impl;
+        _engine._outArr.push(impl);
+        _engine._outMap[name] = impl;
+        if (plugin.ready) impl._start();
+      }
+      port._orig._impl = impl;
+      _push(impl.clients, port._orig);
+      if (!impl.open) port._pause();
+    }
+    _engine._openIn = function(port, name) {
+      var impl = _engine._inMap[name];
+      if (!impl) {
+        if (_engine._pool.length <= _engine._inArr.length) _engine._newPlugin();
+        var plugin = _engine._pool[_engine._inArr.length];
+        impl = {
+          name: name,
+          clients: [],
+          info: {
+            name: name,
+            manufacturer: _engine._allIns[name].manufacturer,
+            version: _engine._allIns[name].version,
+            type: 'MIDI-in',
+            engine: _engine._type            
+          },
+          _start: function(){ document.dispatchEvent(new CustomEvent('jazz-midi', {detail:['openin', plugin.id, name]})); },
+          _close: function(port){ _engine._closeIn(port); }
+        };
+        impl.plugin = plugin;
+        plugin.input = impl;
+        _engine._inArr.push(impl);
+        _engine._inMap[name] = impl;
+        if (plugin.ready) impl._start();
+      }
+      port._orig._impl = impl;
+      _push(impl.clients, port._orig);
+      if (!impl.open) port._pause();
+    }
+    _engine._closeOut = function(port) {
+      var impl = port._impl;
+      _pop(impl.clients, port._orig);
+      if (!impl.clients.length) {
+        impl.open = false;
+        document.dispatchEvent(new CustomEvent('jazz-midi', {detail:['closeout', impl.plugin.id]}));
+      }
+    }
+    _engine._closeIn = function(port) {
+      var impl = port._impl;
+      _pop(impl.clients, port._orig);
+      if (!impl.clients.length) {
+        impl.open = false;
+        document.dispatchEvent(new CustomEvent('jazz-midi', {detail:['closein', impl.plugin.id]}));
+      }
+    }
+    _engine._close = function() {
+    }
+    document.addEventListener('jazz-midi-msg', function(e) {
+      var v = _engine._msg.innerText.split('\n');
+      _engine._msg.innerText = '';
+      for (var i=0; i<v.length; i++) {
+        var a = [];
+        try { a = JSON.parse(v[i]);} catch (e) {}
+        if (!a.length) continue;
+        if (a[0] === 'refresh') {
+          if (a[1].ins) {
+            for (var j=0; i<a[1].ins; i++) a[1].ins[j].type = _engine._type;
+            _engine._ins = a[1].ins;
+          }
+          if (a[1].outs) {
+            for (var j=0; i<a[1].outs; i++) a[1].outs[j].type = _engine._type;
+            _engine._outs = a[1].outs;
+          }
+          _jzz._resume();
+        }
+        else if (a[0] === 'version') {
+          var plugin = _engine._pool[a[1]];
+          if (plugin) {
+            plugin.ready = true;
+            if (plugin.input) plugin.input._start();
+            if (plugin.output) plugin.output._start();
+          }
+        }
+        else if (a[0] === 'openout') {
+          var impl = _engine._pool[a[1]].output;
+          if (impl) {
+            impl.open = true;
+            if (impl.clients) for (var i=0; i<impl.clients.length; i++) impl.clients[i]._resume();
+          }
+        }
+        else if (a[0] === 'openin') {
+          var impl = _engine._pool[a[1]].input;
+          if (impl) {
+            impl.open = true;
+            if (impl.clients) for (var i=0; i<impl.clients.length; i++) impl.clients[i]._resume();
+          }
+        }
+        else if (a[0] === 'midi') {
+          var impl = _engine._pool[a[1]].input;
+          if (impl && impl.clients) {
+            for (var i=0; i<impl.clients.length; i++) {
+              var msg = MIDI(a.slice(3));
+              impl.clients[i]._event(msg);
+            }
+          }
+        }
+      }
+    });
+  }
 
   JZZ = function(opt) {
     if (!_jzz) _initJZZ(opt);
     return _jzz;
   }
+  JZZ.info = function() { return _J.prototype.info();}
 
   // JZZ.MIDI
 
