@@ -9,6 +9,8 @@
 <script src="../javascript/JZZ.synth.MIDIjs.js"></script>
 <script src="../javascript/JZZ.synth.Timbre.js"></script>
 <script src="../javascript/JZZ.synth.OSC.js"></script>
+<script src="../javascript/qwerty-hancock.js"></script>
+<script src="../javascript/JZZ.input.Qwerty.js"></script>
 </head>
 
 <body>
@@ -23,6 +25,7 @@ if (typeof T !== 'undefined' && T instanceof Function && T.version) {
   JZZ.synth.Timbre.register(T("OscGen"));
 }
 JZZ.synth.OSC.register();
+JZZ.input.Qwerty.register();
 JZZ().and(function(){
   var s1 = "";
   var outs = this.info().outputs;
@@ -46,6 +49,8 @@ JZZ().and(function(){
 <a href=timbre/index.html>JZZ.synth.Timbre</a>
 </p><p>
 <a href=osc/index.html>JZZ.synth.OSC</a>
+</p><p>
+<a href=qwerty/index.html>JZZ.input.Qwerty</a>
 </p><p>
 <a href=https://github.com/jazz-soft/JZZ-modules>JZZ modules at GitHub</a>
 </p><p>

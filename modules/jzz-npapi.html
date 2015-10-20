@@ -46,7 +46,7 @@ var div;
 var btn;
 var span;
 
-JZZ({engine:'npapi'}).or(function(){
+JZZ({engine:'plugin'}).or(function(){
     div = document.createElement('div');
     div.textContent = "Jazz-Plugin is not available or no MIDI ports found.";
     out.appendChild(div);

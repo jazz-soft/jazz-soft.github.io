@@ -1,6 +1,6 @@
 (function() {
 
-  var _version = '0.2.5';
+  var _version = '0.2.6';
 
   // _R: common root for all async objects
   function _R() {
@@ -284,7 +284,7 @@
   _I.prototype.info = _O.prototype.info;
   _I.prototype._event = function(msg) {
     for (var i in this._handles) this._handles[i].apply(this, [msg]);
-    for (var i in this._outs) this._outs[i]._send(msg);
+    for (var i in this._outs) this._outs[i].send(msg);
   }
   function _connect(arg) {
     if (arg instanceof Function) _push(this._orig._handles, arg);
@@ -335,15 +335,10 @@
     obj.style.visibility='hidden';
     obj.style.width='0px'; obj.style.height='0px';
     obj.classid = 'CLSID:1ACE1618-1C7D-4561-AEE1-34842AA85E90';
-    if (obj.isJazz) {
-      document.body.appendChild(obj);
-      _initMSIE(obj);
-      return;
-    }
     obj.type = 'audio/x-jazz';
     document.body.appendChild(obj);
     if (obj.isJazz) {
-      _initNPAPI(obj);
+      _initJazzPlugin(obj);
       return;
     }
     this._break();
@@ -408,8 +403,8 @@
     var etc;
     var head = [];
     var tail = [];
-    var hash = {crx: _tryCRX, npapi: _tryJazzPlugin, webmidi: _tryWebMIDI};
-    var web = ['crx', 'webmidi', 'npapi'];
+    var hash = {crx: _tryCRX, plugin: _tryJazzPlugin, webmidi: _tryWebMIDI};
+    var web = ['crx', 'webmidi', 'plugin'];
     for (var i=0; i<arr.length; i++) {
       var name = arr[i].toString().toLowerCase();
       if (dup[name]) continue;
@@ -448,7 +443,6 @@
   }
   // common initialization for Jazz-Plugin and jazz-midi
   function _initEngineJP() {
-    _engine._pool = [];
     _engine._inArr = [];
     _engine._outArr = [];
     _engine._inMap = {};
@@ -566,8 +560,8 @@
     _engine._newPlugin = function(){ return new obj.MIDI();}
     _initEngineJP();
   }
-  function _initMSIE(obj) {
-    _engine._type = 'msie';
+  function _initJazzPlugin(obj) {
+    _engine._type = 'plugin';
     _engine._main = obj;
     _engine._pool = [obj];
     _engine._newPlugin = function() {
@@ -575,19 +569,6 @@
       plg.style.visibility='hidden';
       plg.style.width='0px'; obj.style.height='0px';
       plg.classid = 'CLSID:1ACE1618-1C7D-4561-AEE1-34842AA85E90';
-      document.body.appendChild(plg);
-      return plg.isJazz ? plg : undefined;
-    }
-    _initEngineJP();
-  }
-  function _initNPAPI(obj) {
-    _engine._type = 'npapi';
-    _engine._main = obj;
-    _engine._pool = [obj];
-    _engine._newPlugin = function() {
-      var plg = document.createElement('object');
-      plg.style.visibility='hidden';
-      plg.style.width='0px'; obj.style.height='0px';
       plg.type = 'audio/x-jazz';
       document.body.appendChild(plg);
       return plg.isJazz ? plg : undefined;
