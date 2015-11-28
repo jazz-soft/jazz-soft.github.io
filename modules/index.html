@@ -11,6 +11,7 @@
 <script src="../javascript/JZZ.synth.OSC.js"></script>
 <script src="../javascript/qwerty-hancock.js"></script>
 <script src="../javascript/JZZ.input.Qwerty.js"></script>
+<script src="../javascript/JZZ.input.Kbd.js"></script>
 </head>
 
 <body>
@@ -26,6 +27,7 @@ if (typeof T !== 'undefined' && T instanceof Function && T.version) {
 }
 JZZ.synth.OSC.register();
 JZZ.input.Qwerty.register();
+JZZ.input.Kbd.register();
 JZZ().and(function(){
   var s1 = "";
   var outs = this.info().outputs;
@@ -51,6 +53,8 @@ JZZ().and(function(){
 <a href=osc/index.html>JZZ.synth.OSC</a>
 </p><p>
 <a href=qwerty/index.html>JZZ.input.Qwerty</a>
+</p><p>
+<a href=kbd/index.html>JZZ.input.Kbd</a>
 </p><p>
 <a href=https://github.com/jazz-soft/JZZ-modules>JZZ modules at GitHub</a>
 </p><p>

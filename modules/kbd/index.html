@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>JZZ.input.Kbd demo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<script src="../../javascript/JZZ.js"></script>
+<script src="../../javascript/JZZ.synth.OSC.js"></script>
+<script src="../../javascript/JZZ.input.Kbd.js"></script>
+</head>
+
+<body>
+<h1>JZZ.input.Kbd demo</h1>
+<p id=piano></p>
+<p>Resize the window to see the responsiveness...</p>
+
+<script><!--
+JZZ.synth.OSC.register('Web Audio');
+JZZ.input.Kbd({parent:'piano', from:'C5', to:'B5',
+       362:{to:'C6'}, // responsive parameters
+       404:{to:'D6'},
+       446:{to:'E6'},
+       488:{to:'F6'},
+       530:{to:'G6'},
+       572:{to:'A6'},
+       614:{to:'B6'},
+       656:{to:'C7'},
+       698:{to:'D7'},
+       740:{to:'E7'},
+       782:{to:'F7'},
+       824:{to:'G7'},
+       866:{to:'A7'},
+       908:{to:'B7'},
+       950:{to:'C8'},
+       992:{to:'D8'},
+      1034:{to:'E8'},
+      1076:{to:'F8'},
+      1118:{to:'G8'},
+      1160:{to:'A8'},
+      1202:{to:'B8'},
+      1244:{to:'C9'},
+      1286:{to:'D9'},
+      1328:{to:'E9'},
+      1370:{to:'F9'}
+     })
+     .or(function(){ alert('Cannot open MIDI In!\n' + this.err()); })
+     .connect(JZZ().openMidiOut());
+--></script>
+
+<p>
+<a href=../index.html>Back</a>
+</p>
+
+</body>
+</html>
