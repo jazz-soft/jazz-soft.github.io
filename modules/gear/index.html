@@ -26,7 +26,7 @@ function onMidiMsg(msg) {
     out.innerHTML = txt + 'If any of your devices is not identified correctly, please <a href=https://github.com/jazz-soft/JZZ-midi-Gear#updates>let us know</a>!';
   }
 }
-JZZ({sysex:true})
+JZZ({sysex:true, engine:['webmidi', 'etc']})
    .or(function(){ out.innerHTML = 'Cannot start MIDI engine!'; })
    .and(function(){
       out.innerHTML = 'No ID Response SysEx received...';
