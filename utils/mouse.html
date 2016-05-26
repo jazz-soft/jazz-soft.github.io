@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Mouse Events</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style type="text/css">
+#pad {
+ width:100%;
+ margin:0;
+ padding:0;
+ background-color:#eee;
+ border:solid 1px #888;
+ white-space:pre;
+ font-family:Courier New, monospace;
+ overflow:auto;
+ user-select:none;
+ -khtml-user-select:none;
+ -moz-user-select:none;
+ -ms-user-select:none;
+ -o-user-select:none;
+ -webkit-user-select:none;
+ position:relative;
+}
+#log {
+ margin:2em;
+ margin-left:auto;
+ margin-right:auto;
+ padding:.75em;
+ display:block;
+ background-color:#fff;
+ border:solid 1px #888;
+ width:90%;
+ height:23em;
+ display:block;
+}
+</style>
+
+</head>
+<body>
+<h1>Mouse Events</h1>
+
+<div id=pad><div id=log>JavaScript is disabled</div></div>
+
+<script><!--
+var out = [];
+var pad = document.getElementById('pad');
+var log = document.getElementById('log');
+function print(str) {
+  if (str == out[out.length-1]) return;
+  out.push(str);
+  if (out.length > 20) out = out.slice(1);
+  log.innerHTML = out.join('<br>');
+}
+function isChild(c, p) {
+  while (c = c.parentNode) if (c == p) return true;
+  return false;
+}
+function relation(obj, self) {
+  if (obj == self) return 'this';
+  if (isChild(obj, self)) return 'child';
+  if (isChild(self, obj)) return 'parent';
+  return 'other';
+}
+function addMouseListener(name) {
+  pad.addEventListener(name, function(e){
+    var out = [name];
+    out.push('e.button: ' + e.button);
+    out.push('e.buttons: ' + e.buttons);
+    if (e.target) out.push('e.target: ' + relation(e.target, this));
+    if (e.relatedTarget) out.push('e.relatedTarget: ' + relation(e.relatedTarget, this));
+    print(out.join(' - '));
+  });
+}
+addMouseListener("mousedown");
+addMouseListener("mouseup");
+addMouseListener("mouseenter");
+addMouseListener("mouseleave");
+addMouseListener("mousemove");
+addMouseListener("mouseout");
+addMouseListener("mouseover");
+addMouseListener("click");
+addMouseListener("dblclick");
+addMouseListener("contextmenu");
+addMouseListener("show");
+pad.ondragstart = function() { return false; }
+pad.onselectstart = function() { return false; }
+log.innerHTML = "";
+--></script>
+<p>
+<a href=index.html>Back</a>
+</p>
+</body>
+</html>
