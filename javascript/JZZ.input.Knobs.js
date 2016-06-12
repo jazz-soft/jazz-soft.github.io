@@ -2,7 +2,7 @@
   if (!JZZ) return;
   if (!JZZ.input) JZZ.input = {};
 
-  var _version = '0.1';
+  var _version = '0.4';
   function _name(name, deflt) { return name ? name : deflt; }
 
   function _copy(obj) {
@@ -16,13 +16,13 @@
   function _style(sp, stl) {
     for(var k in stl) sp.style[k] = stl[k];
   }
+  var _innerStyle = {margin:0, padding:0, width:'100%', height:'100%'};
   var _channelMap = { a:10, b:11, c:12, d:13, e:14, f:15, A:10, B:11, C:12, D:13, E:14, F:15 };
   for (var k = 0; k < 16; k++) _channelMap[k] = k;
 
   function _Data(d) {
     this.base = .5;
     this.val = .5;
-    this.int = 0x2000;
     this.msb = 0;
     this.lsb = 0;
     this.chan = 0;
@@ -99,8 +99,6 @@
         this.val = this.num / 0x3fff;
         return true;
       }
-      out.emit([0xb0 + this.chan, this.msb, this.num >> 7]);
-      out.emit([0xb0 + this.chan, this.lsb, this.num & 0x7f]);
     }
   }
 ////////////////////////////////////////////////////////////////////////////
@@ -113,7 +111,7 @@
     this.stl1 = stl1;
   }
   _Span.prototype.setInnerHTML = function(html) {
-    if (this.inner) this.inner.innerHTML = html;
+    this.inner.innerHTML = html;
     return this;
   }
   _Span.prototype.setStyle = function(s0, s1) {
@@ -131,13 +129,13 @@
     this.params = {0:{}};
     if (arg === undefined) arg = {};
     if (common === undefined) common = {};
-    this.channel = _channelMap[arg.channel];
-    if (this.channel === undefined) this.channel = 0;
+    this.chan = _channelMap[arg.chan];
+    if (this.chan === undefined) this.chan = 0;
     var key;
     for (key in arg) {
       if (key == parseInt(key)) this.params[key] = _copy(arg[key]);
       else {
-        if (key == 'channel') continue;
+        if (key == 'chan') continue;
         common[key] = arg[key];
       }
     }
@@ -185,6 +183,7 @@
     this.current = this.params[bin];
     this.createCurrent();
   }
+  _Knob.prototype.settings = function() { return _copy(this.current); }
   _Knob.prototype.isSelected = function() { return this.dragX !== undefined; }
   _Knob.prototype.restyle = function() {
     for (var i in this.spans) this.spans[i].setStyle();
@@ -260,14 +259,15 @@
     this.pos = pos;
     if (!this.data) {
       this.data = new _Data(this.current.data);
+      this.data.chan = this.chan;
       this.data.setBase(this.current.base);
       this.data.setValue(this.current.val);
     }
     this.dx = - (kw / 2);
     this.dy = - (kh / 2 + 1);
 
-    if (!bh) bh = kh + rh;
-    if (!bw) bw = kw > rw ? kw : rw;
+    if (!bh) bh = kh + rh + 2;
+    if (!bw) bw = (kw > rw ? kw : rw) + 2;
     this.stlB = { display:'inline-block', position:'relative', margin:'0', padding:'0', userSelect:'none', KhtmlUserSelect:'none', MozUserSelect:'none', MsUserSelect:'none', OUserSelect:'none', WebkitUserSelect:'none' };
     this.stlB0 = { borderStyle:'none' };
     this.stlB1 = { borderStyle:'none' };
@@ -303,24 +303,31 @@
 
     var box = document.createElement('span');
     this.box = box;
-    this.boxSpan = new _Span(this, box, 0, this.stlB, this.stlB0, this.stlB1);
+    var box_ = document.createElement('span');
+    _style(box_, _innerStyle);
+    this.boxSpan = new _Span(this, box, box_, this.stlB, this.stlB0, this.stlB1);
     var range = document.createElement('span');
     this.range = range;
-    this.rangeSpan = new _Span(this, range, 0, this.stlR, this.stlR0, this.stlR1);
+    var range_ = document.createElement('span');
+    _style(range_, _innerStyle);
+    this.rangeSpan = new _Span(this, range, range_, this.stlR, this.stlR0, this.stlR1);
     var knob = document.createElement('span');
     this.knob = knob;
     this.knobSpan = new _Span(this, knob, knob, this.stlK, this.stlK0, this.stlK1);
     this.spans = [this.boxSpan, this.rangeSpan, this.knobSpan];
 
-    box.addEventListener("touchstart", _IgnoreTouch);
-    knob.addEventListener("mousedown", _MouseDown(this));
-    knob.addEventListener("touchstart", _TouchStart(this));
-    knob.addEventListener("touchmove", _TouchMove(this));
-    knob.addEventListener("touchend", _TouchEnd(this));
-
-    this.setValue(this.value);
+    var active = this.current.active === undefined || this.current.active;
+    if (active) {
+      box.addEventListener("touchstart", _IgnoreTouch);
+      knob.addEventListener("mousedown", _MouseDown(this));
+      knob.addEventListener("touchstart", _TouchStart(this));
+      knob.addEventListener("touchmove", _TouchMove(this));
+      knob.addEventListener("touchend", _TouchEnd(this));
+    }
     if (this.current.onCreate) this.current.onCreate.apply(this);
+    range.appendChild(range_);
     range.appendChild(knob);
+    box.appendChild(box_);
     box.appendChild(range);
     box.ondragstart = _returnFalse;
     box.onselectstart = _returnFalse;
@@ -391,6 +398,197 @@
       this.setValue();
     }
   }
+////////////////////////////////////////////////////////////////////////////
+  function Pad(arg) {
+    _initKnob.call(this, arg, {pos:'N', rw:128, rh:128, kw:24, kh:16});
+  }
+  Pad.prototype = new _Knob;
+  Pad.prototype.createAt = function(parent) {
+    parent.innerHTML = '';
+    var bh = parseInt(this.current.bh);
+    var bw = parseInt(this.current.bw);
+    var rh = parseInt(this.current.rh); if (!rh) rh = 128;
+    this.rh = rh;
+    var rw = parseInt(this.current.rw); if (!rw) rw = 128;
+    this.rw = rw;
+    var kh = parseInt(this.current.kh); if (!kh) kh = 24;
+    var kw = parseInt(this.current.kw); if (!kw) kw = 16;
+    var pos = this.current.pos.toUpperCase();
+    this.pos = pos;
+    if (!this.dataX) {
+      this.dataX = new _Data(this.current.dataX);
+      this.dataY = new _Data(this.current.dataY);
+      if (this.current.dataX === undefined && this.current.dataY !== undefined && !this.dataY.msb) this.dataX = new _Data('mod');
+      if (this.current.dataY === undefined && !this.dataX.msb) this.dataY = new _Data('mod');
+      this.dataX.chan = this.chan;
+      this.dataY.chan = this.chan;
+      this.dataX.setBase(this.current.baseX);
+      this.dataY.setBase(this.current.baseY);
+      this.dataX.setValue(this.current.valX);
+      this.dataY.setValue(this.current.valY);
+    }
+    this.dx = - (kw / 2 + 1);
+    this.dy = - (kh / 2 + 1);
+
+    if (!bh) bh = kh + rh + 2;
+    if (!bw) bw = kw + rw + 2;
+    this.stlB = { display:'inline-block', position:'relative', margin:'0', padding:'0', userSelect:'none', KhtmlUserSelect:'none', MozUserSelect:'none', MsUserSelect:'none', OUserSelect:'none', WebkitUserSelect:'none' };
+    this.stlB0 = { borderStyle:'none' };
+    this.stlB1 = { borderStyle:'none' };
+    this.stlR = { display:'inline-block', position:'absolute', margin:'0', padding:'0', borderStyle:'solid', borderWidth:'1px' };
+    this.stlR0 = { backgroundColor:'#aaa' };
+    this.stlR1 = { backgroundColor:'#bbb' };
+    this.stlK = { display:'inline-block', position:'absolute', margin:'0', padding:'0', borderStyle:'solid', borderWidth:'1px' };
+    this.stlK0 = { backgroundColor:'#ddd' };
+    this.stlK1 = { backgroundColor:'#eee' };
+
+    if (pos == 'E' || pos == 'W') {
+      this.stlB.width = bh + 'px';
+      this.stlB.height = bw + 'px';
+      this.stlR.width = rh + 'px';
+      this.stlR.height = rw + 'px';
+      this.stlR.left = ((bh - rh) / 2 - 1) + 'px';
+      this.stlR.top = ((bw - rw) / 2 - 1) + 'px';
+      this.stlK.width = kh + 'px';
+      this.stlK.height = kw + 'px';
+      this.stlK.top = this.dx + 'px';
+    }
+    else {
+      this.stlB.width = bw + 'px';
+      this.stlB.height = bh + 'px';
+      this.stlR.width = rw + 'px';
+      this.stlR.height = rh + 'px';
+      this.stlR.top = ((bh - rh) / 2 - 1) + 'px';
+      this.stlR.left = ((bw - rw) / 2 - 1) + 'px';
+      this.stlK.width = kw + 'px';
+      this.stlK.height = kh + 'px';
+      this.stlK.left = this.dx + 'px';
+    }
+
+    var box = document.createElement('span');
+    this.box = box;
+    var box_ = document.createElement('span');
+    _style(box_, _innerStyle);
+    this.boxSpan = new _Span(this, box, box_, this.stlB, this.stlB0, this.stlB1);
+    var range = document.createElement('span');
+    this.range = range;
+    var range_ = document.createElement('span');
+    _style(range_, _innerStyle);
+    this.rangeSpan = new _Span(this, range, range_, this.stlR, this.stlR0, this.stlR1);
+    var knob = document.createElement('span');
+    this.knob = knob;
+    this.knobSpan = new _Span(this, knob, knob, this.stlK, this.stlK0, this.stlK1);
+    this.spans = [this.boxSpan, this.rangeSpan, this.knobSpan];
+
+    var active = this.current.active === undefined || this.current.active;
+    if (active) {
+      box.addEventListener("touchstart", _IgnoreTouch);
+      knob.addEventListener("mousedown", _MouseDown(this));
+      knob.addEventListener("touchstart", _TouchStart(this));
+      knob.addEventListener("touchmove", _TouchMove(this));
+      knob.addEventListener("touchend", _TouchEnd(this));
+    }
+    if (this.current.onCreate) this.current.onCreate.apply(this);
+    range.appendChild(range_);
+    range.appendChild(knob);
+    box.appendChild(box_);
+    box.appendChild(range);
+    box.ondragstart = _returnFalse;
+    box.onselectstart = _returnFalse;
+    parent.appendChild(box);
+    if (!this.parent && this.bins.length > 1) {
+      var self = this;
+      this.resize = function() { self.onResize(); }
+      window.addEventListener('resize', this.resize);
+    }
+    this.current.parent = parent;
+    this.parent = parent;
+    this.setValue();
+    _style(this.box, this.dragX === undefined ? this.stlB0 : this.stlB1);
+    _style(this.box, this.stlB);
+    _style(this.range, this.dragX === undefined ? this.stlR0 : this.stlR1);
+    _style(this.range, this.stlR);
+    _style(this.knob, this.dragX === undefined ? this.stlK0 : this.stlK1);
+    _style(this.knob, this.stlK);
+  }
+  Pad.prototype.getBox = function() { return this.boxSpan; }
+  Pad.prototype.getRange = function() { return this.rangeSpan; }
+  Pad.prototype.getKnob = function() { return this.knobSpan; }
+  Pad.prototype.setValue = function(x, y) {
+    if (x === undefined) {
+      x = this.dataX.val;
+      y = this.dataY.val;
+    }
+    else if (!this.dataX.setValue(x) && !this.dataY.setValue(y)) return;
+    x = this.dataX.val;
+    y = this.dataY.val;
+    if (this.pos == 'N' || this.pos == 'W') y = 1. - y;
+    if (this.pos == 'S' || this.pos == 'W') x = 1. - x;
+    x *= this.rw;
+    y *= this.rh;
+    if (this.pos == 'N' || this.pos == 'S') {
+      this.coordX = x;
+      this.coordY = y;
+    }
+    else {
+      this.coordX = y;
+      this.coordY = x;
+    }
+    x += this.dx;
+    y += this.dy;
+    if (this.pos == 'N' || this.pos == 'S') {
+      this.stlK.left = x + 'px';
+      this.stlK.top = y + 'px';
+    }
+    else {
+      this.stlK.top = x + 'px';
+      this.stlK.left = y + 'px';
+    }
+    this.knob.style.left = this.stlK.left;
+    this.knob.style.top = this.stlK.top;
+  }
+  Pad.prototype.onMove = function(x, y) {
+    x = this.coordX + x - this.dragX;
+    y = this.coordY + y - this.dragY;
+    if (x < 0) x = 0;
+    if (y < 0) y = 0;
+    if (this.pos == 'N' || this.pos == 'S') {
+      if (x > this.rw) x = this.rw;
+      if (y > this.rh) y = this.rh;
+      this.knob.style.left = x + this.dx + 'px';
+      this.knob.style.top = y + this.dy + 'px';
+    }
+    else {
+      if (x > this.rh) x = this.rh;
+      if (y > this.rw) y = this.rw;
+      this.knob.style.left = x + this.dy + 'px';
+      this.knob.style.top = y + this.dx + 'px';
+    }
+    this.stlK.left = this.knob.style.left;
+    this.stlK.top = this.knob.style.top;
+
+    this.dragX += x - this.coordX;
+    this.dragY += y - this.coordY;
+    this.coordX = x;
+    this.coordY = y;
+    if (this.pos == 'E' || this.pos == 'W') {
+      x = this.coordY;
+      y = this.coordX;
+    }
+    x /= this.rw;
+    y /= this.rh;
+    if (this.pos == 'N' || this.pos == 'W') y = 1. - y;
+    if (this.pos == 'S' || this.pos == 'W') x = 1. - x;
+    if (this.dataX.setValue(x)) this.dataX.emit(this);
+    if (this.dataY.setValue(y)) this.dataY.emit(this);
+  }
+  Pad.prototype.forward = function(msg) {
+    this.emit(msg);
+    if (this.dataX.read(msg) || this.dataY.read(msg)) {
+      this.setValue();
+    }
+  }
+////////////////////////////////////////////////////////////////////////////
   function EngSlider() {}
   EngSlider.prototype._info = function(name) {
     return {
@@ -407,6 +605,7 @@
     port._info = this._info(name);
     port._receive = function(msg) { slider.forward(msg); };
     port._close = function(){ slider._close(); }
+    port.settings = function() { return slider.settings(); }
     port.getBox = function() { return slider.boxSpan; }
     port.getRange = function() { return slider.rangeSpan; }
     port.getKnob = function() { return slider.knobSpan; }
@@ -434,6 +633,54 @@
     }
     else { name = arguments[0]; arg = arguments[1];}
     var _engine = new EngSlider;
+    _engine._arg = arg;
+    return JZZ.lib.registerMidiIn(name, _engine);
+  }
+////////////////////////////////////////////////////////////////////////////
+  function EngPad() {}
+  EngPad.prototype._info = function(name) {
+    return {
+      type: 'html/javascript',
+      name: _name(name, 'Pad'),
+      manufacturer: 'virtual',
+      version: _version
+    };
+  }
+  EngPad.prototype._openIn = function(port, name) {
+    var pad = new Pad(this._arg);
+    pad.create();
+    pad.emit = function(msg) { port._emit(msg); };
+    port._info = this._info(name);
+    port._receive = function(msg) { pad.forward(msg); };
+    port._close = function(){ pad._close(); }
+    port.settings = function() { return pad.settings(); }
+    port.getBox = function() { return pad.boxSpan; }
+    port.getRange = function() { return pad.rangeSpan; }
+    port.getKnob = function() { return pad.knobSpan; }
+    port.setValue = function(x) { pad.setValue(x);}
+    port._resume();
+  }
+
+  JZZ.input.Pad = function() {
+    var name, arg;
+    if (arguments.length == 1) {
+      if (typeof arguments[0] === 'string') name = arguments[0];
+      else arg = arguments[0];
+    }
+    else { name = arguments[0]; arg = arguments[1];}
+    var _engine = new EngPad;
+    _engine._arg = arg;
+    return JZZ.lib.openMidiIn(name, _engine);
+  }
+
+  JZZ.input.Pad.register = function() {
+    var name, arg;
+    if (arguments.length == 1) {
+      if (typeof arguments[0] === 'string') name = arguments[0];
+      else arg = arguments[0];
+    }
+    else { name = arguments[0]; arg = arguments[1];}
+    var _engine = new EngPad;
     _engine._arg = arg;
     return JZZ.lib.registerMidiIn(name, _engine);
   }
