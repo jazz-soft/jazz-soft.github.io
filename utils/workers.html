@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Web Workers</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+<h1>Web Workers</h1>
+<div id=out><p>JavaScript is disabled</p></div>
+<script><!--
+var out = document.getElementById('out');
+
+if (typeof Worker !== 'undefined') {
+  out.innerHTML = '<p>This browser supports Workers</p>';
+}
+else {
+  out.innerHTML = '<p>This browser does not support Workers</p>';
+}
+try {
+  var workerCode = "onmessage = function(ev) { postMessage('Hello from the Blob Worker!'); close();};";
+  var blob = new Blob([workerCode]);
+  var blobURL = window.URL.createObjectURL(blob);
+  var w0 = new Worker(blobURL);
+  w0.postMessage(undefined);
+  w0.onmessage = function(ev) {
+    out.innerHTML += '<p>' + ev.data + '</p>';
+  }
+}
+catch(e) {
+  out.innerHTML += '<p>' + e.toString() + '</p>';
+}
+try {
+  var w1 = new Worker('worker.js');
+  w1.postMessage(undefined);
+  w1.onmessage = function(ev) {
+    out.innerHTML += '<p>' + ev.data + '</p>';
+  }
+}
+catch(e) {
+  out.innerHTML += '<p>' + e.toString() + '</p>';
+}
+--></script>
+<p>
+<a href=index.html>Back</a>
+</p>
+</body>
+</html>
