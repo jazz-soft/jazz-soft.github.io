@@ -2,7 +2,7 @@
   if (!JZZ) return;
   if (!JZZ.input) JZZ.input = {};
 
-  var _version = '0.7';
+  var _version = '0.9';
   function _name(name) { return name ? name : 'Kbd'; }
 
   function _copy(obj) {
@@ -10,8 +10,16 @@
     for(var k in obj) ret[k] = obj[k];
     return ret;
   }
-  function _lftBtnDn(e) { return e.buttons === undefined ? !e.button : e.buttons & 1; }
-  function _lftBtnUp(e) { return e.buttons === undefined ? !e.button : !(e.buttons & 1); }
+  var _firefoxBug;
+  function _fixBtnUp(e) {
+    if (typeof e.buttons == 'undefined' || e.buttons != _firefoxBug) return e;
+    e.stopPropagation();
+    if (e.button == 0) return {buttons:_firefoxBug^1};
+    if (e.button == 1) return {buttons:_firefoxBug^4};
+    if (e.button == 2) return {buttons:_firefoxBug^2};
+  }
+  function _lftBtnDn(e) { return typeof e.buttons == 'undefined' ? !e.button : e.buttons & 1; }
+  function _lftBtnUp(e) { return typeof e.buttons == 'undefined' ? !e.button : !(e.buttons & 1); }
   function _stay(c, p) { for (; c; c = c.parentNode) if (c == p) return true; return false; }
   function _returnFalse() { return false; }
   function _style(key, stl) {
@@ -20,49 +28,64 @@
   function _keyNum(name) {
     if (!(typeof name == 'string')) return undefined;
     var base = {C:0, D:1, E:2, F:3, G:4, A:5, B:6}[name.substr(0, 1).toUpperCase()];
-    if (base === undefined) return undefined;
+    if (typeof base == 'undefined') return undefined;
     var oct = name.substr(1);
     if (parseInt(oct) != oct) return undefined;
     var num = 7 * oct + base;
-    return num >= 0 && num <=74 ? num : undefined;
+    return num >= 0 && num <= 74 ? num : undefined;
   }
   function _keyMidi(n) {
     return Math.floor(n / 7) * 12 + {0:0, 1:2, 2:4, 3:5, 4:7, 5:9, 6:11}[n % 7];
   }
   function _handleMouseDown(piano, midi) {
     return function(e) {
-      if (!_lftBtnDn(e) || piano.playing[midi]) return;
-      piano.mouseDown = true;
-      piano.playing[midi] = 'M';
-      piano.press(midi);
+      if (_lftBtnDn(e) && !piano.playing[midi]) {
+        piano.mouseDown = true;
+        piano.playing[midi] = 'M';
+        piano.press(midi);
+      }
+      _firefoxBug = e.buttons;
     };
   }
   function _handleMouseOver(piano, midi) {
     return function(e) {
-      if (!piano.mouseDown || piano.playing[midi]) return;
-      piano.playing[midi] = 'M';
-      piano.press(midi);
+      if (piano.mouseDown && !piano.playing[midi]) {
+        piano.playing[midi] = 'M';
+        piano.press(midi);
+      }
+      _firefoxBug = e.buttons;
     };
   }
   function _handleMouseOut(piano, midi) {
     return function(e) {
-      if (!piano.mouseDown || piano.playing[midi] != 'M' || _stay(e.relatedTarget, this)) return;
-      piano.playing[midi] = undefined;
-      piano.release(midi);
+      if (piano.mouseDown && piano.playing[midi] == 'M' && !_stay(e.relatedTarget, this)) {
+        piano.playing[midi] = undefined;
+        piano.release(midi);
+      }
+      _firefoxBug = e.buttons;
     };
   }
   function _handleMouseUp(piano, midi) {
     return function(e) {
-      if (!_lftBtnUp(e) || !piano.mouseDown) return;
-      if (piano.playing[midi] != 'M') return;
-      piano.playing[midi] = undefined;
-      piano.release(midi);
+      e = _fixBtnUp(e);
+      if (_lftBtnUp(e) && piano.mouseDown && piano.playing[midi] == 'M') {
+        piano.playing[midi] = undefined;
+        piano.release(midi);
+        piano.mouseDown = false;
+      }
+      _firefoxBug = e.buttons;
     };
   }
   function _handleMouseOff(piano) {
     return function(e) {
-      if (!_lftBtnUp(e)) return;
-      piano.mouseDown = false;
+      e = _fixBtnUp(e);
+      if (_lftBtnUp(e)) piano.mouseDown = false;
+      _firefoxBug = e.buttons;
+    };
+  }
+  function _watchMouseButtons() {
+    return function(e) {
+      _firefoxBug = e.buttons;
     };
   }
   function _handleTouch(piano) {
@@ -73,7 +96,7 @@
       var tt = {};
       for (var midi in t) {
         if (midi in piano.touches) tt[midi] = true;
-        else if (piano.playing[midi] === undefined) {
+        else if (typeof piano.playing[midi] == 'undefined') {
           piano.playing[midi] = 'T';
           piano.press(midi);
           tt[midi] = true;
@@ -97,22 +120,22 @@
     this.bins = [];
     this.params = {0:{}};
     var common = {from:'C4', to:'E6', ww:42, bw:24, wl:150, bl:100, pos:'N'};
-    if (arg === undefined) arg = {};
+    if (typeof arg == 'undefined') arg = {};
     this.chan = _channelMap[arg.chan];
-    if (this.chan === undefined) this.chan = 0;
+    if (typeof this.chan == 'undefined') this.chan = 0;
     var key;
     for (key in arg) {
       if (key == parseInt(key)) this.params[key] = _copy(arg[key]);
       else {
         if (key == 'chan') continue;
-        if ((key == 'from' || key == 'to') && _keyNum(arg[key]) === undefined) continue;
+        if ((key == 'from' || key == 'to') && typeof _keyNum(arg[key]) == 'undefined') continue;
         common[key] = arg[key];
       }
     }
     for (key in this.params) {
       this.bins.push(key);
       for (var k in common) {
-        if ((k == 'from' || k == 'to') && _keyNum(this.params[key][k]) === undefined) this.params[key][k] = common[k];
+        if ((k == 'from' || k == 'to') && typeof _keyNum(this.params[key][k]) == 'undefined') this.params[key][k] = common[k];
         if (!(k in this.params[key])) this.params[key][k] = common[k];
       }
       var from = this.params[key]['from'];
@@ -126,8 +149,8 @@
   }
   Piano.prototype._close = function() {
     for (var midi in this.playing) if (this.playing[midi] == 'M' || this.playing[midi] == 'T') this.noteOff(midi);
-    if (this.parent) this.parent.innerHTML = '';
-    if (this.mouseUpHandler) window.removeEventListener("mouseup", this.mouseUpHandler);
+    if (this.resize) window.removeEventListener('resize', this.resize);
+    this.cleanup();
   }
   Piano.prototype.press = function(midi) {
     _style(this.keys[midi], this.stl1[midi]);
@@ -156,16 +179,14 @@
     this.emit(msg);
   }
   Piano.prototype.findKey = function(x, y, ret) {
-    var found;
     for (var midi in this.keys) {
-      var r = this.keys[midi].getBoundingClientRect();
-      if (x > r.left && x < r.right && y > r.top && y < r.bottom) {
-        found = midi;
-        var k = midi % 12;
-        if (k == 1 || k == 3 || k == 6 || k == 8 || k == 10) break;
+      for (var elm = document.elementFromPoint(x, y); elm; elm = elm.parentNode) {
+        if (this.keys[midi] == elm) {
+          ret[midi] = true;
+          return;
+        }
       }
     }
-    if (found !== undefined) ret[found] = true;
   }
   Piano.prototype.create = function() {
     var bin = 0;
@@ -177,8 +198,16 @@
     this.createCurrent();
   }
   Piano.prototype.createCurrent = function() {
-    if (this.parent) this.parent.innerHTML = '';
-    if (typeof this.current.parent === 'string') this.current.parent = document.getElementById(this.current.parent);
+    this.cleanup();
+    this.keys = {}; this.locs = {};
+    this.stl0 = {}; this.stl1 = {};
+    this.playing = {}; this.touches = {};
+
+    if (this.current.keys) {
+      this.createWithKeys(this.current.keys);
+      return;
+    }
+    if (typeof this.current.parent == 'string') this.current.parent = document.getElementById(this.current.parent);
     try { this.createAt(this.current.parent); }
     catch(e) {
       if (!this.bottom) {
@@ -188,11 +217,21 @@
       this.createAt(this.bottom);
     }
   }
+  Piano.prototype.createWithKeys = function(keys) {
+    for (var k in keys) {
+      var midi = JZZ.MIDI.noteValue(keys[k][1]);
+      var dom = keys[k][0];
+      if (typeof dom == 'string') dom = document.getElementById(dom);
+      this.keys[midi] = dom;
+      this.locs[midi] = {};
+      this.stl0[midi] = {};
+      this.stl1[midi] = {};
+    }
+    if (this.current.onCreate) this.current.onCreate.apply(this);
+    this.setListeners();
+  }
   Piano.prototype.createAt = function(parent) {
     parent.innerHTML = '';
-    this.keys = {}; this.locs = {};
-    this.stl0 = {}; this.stl1 = {};
-    this.playing = {}; this.touches = {};
     var pos = this.current.pos.toUpperCase();
     var first = _keyNum(this.current.from);
     var last = _keyNum(this.current.to);
@@ -299,32 +338,65 @@
     }
     if (this.current.onCreate) this.current.onCreate.apply(this);
     parent.appendChild(piano);
-    var active = this.current.active === undefined || this.current.active;
-    for (midi in this.keys) {
-      if (active) {
-        this.keys[midi].addEventListener("mousedown", _handleMouseDown(this, midi));
-        this.keys[midi].addEventListener("mouseover", _handleMouseOver(this, midi));
-        this.keys[midi].addEventListener("mouseout", _handleMouseOut(this, midi));
-        this.keys[midi].addEventListener("mouseup", _handleMouseUp(this, midi));
+    this.current.parent = parent;
+    this.parent = parent;
+    this.setListeners();
+  }
+  Piano.prototype.setListeners = function() {
+    var active = typeof this.current.active == 'undefined' || this.current.active;
+    if (active) {
+      this.watchButtons = _watchMouseButtons();
+      this.mouseUpHandle = _handleMouseOff(this);
+      window.addEventListener("mousedown", this.watchButtons);
+      window.addEventListener("mousemove", this.watchButtons);
+      window.addEventListener("mouseup", this.mouseUpHandle);
+      this.touchHandle = _handleTouch(this);
+      this.mouseDownH = [];
+      this.mouseOverH = [];
+      this.mouseOutH = [];
+      this.mouseUpH = [];
+      for (var midi in this.keys) {
+        this.mouseDownH[midi] = _handleMouseDown(this, midi);
+        this.mouseOverH[midi] = _handleMouseOver(this, midi);
+        this.mouseOutH[midi] = _handleMouseOut(this, midi);
+        this.mouseUpH[midi] = _handleMouseUp(this, midi);
+        this.keys[midi].addEventListener("mousedown", this.mouseDownH[midi]);
+        this.keys[midi].addEventListener("mouseover", this.mouseOverH[midi]);
+        this.keys[midi].addEventListener("mouseout", this.mouseOutH[midi]);
+        this.keys[midi].addEventListener("mouseup", this.mouseUpH[midi]);
+        this.keys[midi].addEventListener("touchstart", this.touchHandle);
+        this.keys[midi].addEventListener("touchmove", this.touchHandle);
+        this.keys[midi].addEventListener("touchend", this.touchHandle);
       }
+    }
+    for (var midi in this.keys) {
       this.keys[midi].ondragstart = _returnFalse;
       this.keys[midi].onselectstart = _returnFalse;
     }
-    if (active) {
-      this.mouseUpHandler = _handleMouseOff(this);
-      window.addEventListener("mouseup", this.mouseUpHandler);
-      var touchHandle = _handleTouch(this);
-      piano.addEventListener("touchstart", touchHandle);
-      piano.addEventListener("touchmove", touchHandle);
-      piano.addEventListener("touchend", touchHandle);
-    }
-    if (!this.parent && this.bins.length > 1) {
+    if (!this.resize && this.bins.length > 1) {
       var self = this;
       this.resize = function() { self.onResize();}
       window.addEventListener('resize', this.resize);
     }
-    this.current.parent = parent;
-    this.parent = parent;
+  }
+  Piano.prototype.cleanup = function() {
+    if (this.watchButtons) {
+      window.removeEventListener("mousedown", this.watchButtons);
+      window.removeEventListener("mousemove", this.watchButtons);
+      window.removeEventListener("mouseup", this.mouseUpHandle);
+    }
+    for (var midi in this.keys) {
+      if (this.mouseDownH[midi]) this.keys[midi].removeEventListener("mousedown", this.mouseDownH[midi]);
+      if (this.mouseOverH[midi]) this.keys[midi].removeEventListener("mouseover", this.mouseOverH[midi]);
+      if (this.mouseOutH[midi]) this.keys[midi].removeEventListener("mouseout", this.mouseOutH[midi]);
+      if (this.mouseUpH[midi]) this.keys[midi].removeEventListener("mouseup", this.mouseUpH[midi]);
+      if (this.touchHandle) {
+        this.keys[midi].removeEventListener("touchstart", this.touchHandle);
+        this.keys[midi].removeEventListener("touchmove", this.touchHandle);
+        this.keys[midi].removeEventListener("touchend", this.touchHandle);
+      }
+    }
+    if (this.parent) this.parent.innerHTML = '';
   }
   Piano.prototype.settings = function() { return _copy(this.current); }
   Piano.prototype.onResize = function() {
@@ -340,29 +412,29 @@
   Piano.prototype.getKey = function(note) {
     var keys = new Keys(this);
     var k = JZZ.MIDI.noteValue(note);
-    if (this.keys[k] !== undefined) keys.keys.push(k);
+    if (typeof this.keys[k] != 'undefined') keys.keys.push(k);
     return keys;
   }
   Piano.prototype.getKeys = function(from, to) {
     var keys = new Keys(this);
-    var n0 = from === undefined ? undefined : JZZ.MIDI.noteValue(from);
-    var n1 = to === undefined ? undefined : JZZ.MIDI.noteValue(to);
-    if (n0 !== undefined && n1 !== undefined && n1 < n0) { var nn = n0; n0 = n1; n1 = nn; }
+    var n0 = typeof from == 'undefined' ? undefined : JZZ.MIDI.noteValue(from);
+    var n1 = typeof to == 'undefined' ? undefined : JZZ.MIDI.noteValue(to);
+    if (typeof n0 != 'undefined' && typeof n1 != 'undefined' && n1 < n0) { var nn = n0; n0 = n1; n1 = nn; }
     for (var k in this.keys) {
-      if (n0 !== undefined && k < n0) continue;
-      if (n1 !== undefined && k > n1) continue;
+      if (typeof n0 != 'undefined' && k < n0) continue;
+      if (typeof n1 != 'undefined' && k > n1) continue;
       keys.keys.push(k);
     }
     return keys;
   }
   Piano.prototype.getWhiteKeys = function(from, to) {
     var keys = new Keys(this);
-    var n0 = from === undefined ? undefined : JZZ.MIDI.noteValue(from);
-    var n1 = to === undefined ? undefined : JZZ.MIDI.noteValue(to);
-    if (n0 !== undefined && n1 !== undefined && n1 < n0) { var nn = n0; n0 = n1; n1 = nn; }
+    var n0 = typeof from == 'undefined' ? undefined : JZZ.MIDI.noteValue(from);
+    var n1 = typeof to == 'undefined' ? undefined : JZZ.MIDI.noteValue(to);
+    if (typeof n0 != 'undefined' && typeof n1 != 'undefined' && n1 < n0) { var nn = n0; n0 = n1; n1 = nn; }
     for (var k in this.keys) {
-      if (n0 !== undefined && k < n0) continue;
-      if (n1 !== undefined && k > n1) continue;
+      if (typeof n0 != 'undefined' && k < n0) continue;
+      if (typeof n1 != 'undefined' && k > n1) continue;
       var n = k % 12;
       if (n == 1 || n == 3 || n == 6 || n == 8 || n == 10) continue;
       keys.keys.push(k);
@@ -371,12 +443,12 @@
   }
   Piano.prototype.getBlackKeys = function(from, to) {
     var keys = new Keys(this);
-    var n0 = from === undefined ? undefined : JZZ.MIDI.noteValue(from);
-    var n1 = to === undefined ? undefined : JZZ.MIDI.noteValue(to);
-    if (n0 !== undefined && n1 !== undefined && n1 < n0) { var nn = n0; n0 = n1; n1 = nn; }
+    var n0 = typeof from == 'undefined' ? undefined : JZZ.MIDI.noteValue(from);
+    var n1 = typeof to == 'undefined' ? undefined : JZZ.MIDI.noteValue(to);
+    if (typeof n0 != 'undefined' && typeof n1 != 'undefined' && n1 < n0) { var nn = n0; n0 = n1; n1 = nn; }
     for (var k in this.keys) {
-      if (n0 !== undefined && k < n0) continue;
-      if (n1 !== undefined && k > n1) continue;
+      if (typeof n0 != 'undefined' && k < n0) continue;
+      if (typeof n1 != 'undefined' && k > n1) continue;
       var n = k % 12;
       if (n != 1 && n != 3 && n != 6 && n != 8 && n != 10) continue;
       keys.keys.push(k);
@@ -393,7 +465,7 @@
     return this;
   }
   Keys.prototype.setStyle = function(s0, s1) {
-    if (s1 === undefined) s1 = s0;
+    if (typeof s1 == 'undefined') s1 = s0;
     for (var k in this.keys) {
       var midi = this.keys[k];
       for (var n in s0) this.piano.stl0[midi][n] = s0[n];
