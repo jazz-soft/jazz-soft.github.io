@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Keyboard Events</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style type="text/css">
+pre {background-color:#ddd;}
+pre:focus {background-color:#ff0;}
+</style>
+</head>
+<body>
+<h1>Keyboard Events</h1>
+<pre id=input tabindex=1>
+Type here...
+</pre>
+<script><!--
+var input = document.getElementById('input');
+input.focus();
+var out = [];
+function print(str) {
+ out.push(str);
+ if  (out.length > 24) out.splice(0,1);
+ input.innerHTML = out.join('\n');
+}
+function onDown(e) {
+ var str = ['Key Down', 'charCode', e.charCode, 'keyCode', e.keyCode, 'ctrlKey', e.ctrlKey, 'shiftKey', e.shiftKey, 'altKey', e.altKey, 'metaKey', e.metaKey].join(' ');
+ print(str);
+}
+function onKeypress(e) {
+ var str = ['Key Press', 'charCode', e.charCode, 'keyCode', e.keyCode, 'ctrlKey', e.ctrlKey, 'shiftKey', e.shiftKey, 'altKey', e.altKey, 'metaKey', e.metaKey].join(' ');
+ e.preventDefault();
+ print(str);
+}
+function onKeyup(e) {
+ var str = ['Key Up', 'charCode', e.charCode, 'keyCode', e.keyCode, 'ctrlKey', e.ctrlKey, 'shiftKey', e.shiftKey, 'altKey', e.altKey, 'metaKey', e.metaKey].join(' ');
+ print(str);
+}
+input.addEventListener("keydown", onDown, false);
+input.addEventListener("keypress", onKeypress, false);
+input.addEventListener("keyup", onKeyup, false);
+--></script>
+<p>
+<a href=index.html>Back</a>
+</p>
+</body>
+</html>
