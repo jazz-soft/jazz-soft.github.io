@@ -19,7 +19,7 @@
 
 <script><!--
 JZZ.synth.OSC.register('Web Audio');
-var piano = JZZ.input.Kbd({parent:'piano', from:'C5', to:'B5'})
+var piano = JZZ.input.Kbd({at:'piano', from:'C5', to:'B5'})
    .and(function(){
      this.getBlackKeys().setStyle({color:'#fff'});
      this.getKey('C5').setInnerHTML('<span class=inner>Z</span>');
