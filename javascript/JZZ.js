@@ -1,6 +1,6 @@
 (function() {
 
-  var _version = '0.3.7';
+  var _version = '0.3.8';
 
   // _R: common root for all async objects
   function _R() {
@@ -222,6 +222,7 @@
   function _defaultPortInfo() {
     if (typeof this._info.engine == 'undefined') this._info.engine = 'none';
     if (typeof this._info.sysex == 'undefined') this._info.sysex = true;
+    if (typeof this._info.type == 'undefined') this._info.type = 'unknown';
   }
 
   function _openMidiOut(port, arg) {
@@ -402,7 +403,8 @@
   function _zeroBreak() {
     this._pause();
     var self = this;
-    setTimeout(function(){ self._crash();}, 0);
+    if (document.readyState != 'complete') window.addEventListener('load', function(){ setTimeout(function(){ self._crash();}, 0);});
+    else setTimeout(function(){ self._crash();}, 0);
   }
 
   function _filterEngines(opt) {
