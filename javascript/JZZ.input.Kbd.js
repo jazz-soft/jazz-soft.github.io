@@ -2,7 +2,7 @@
   if (!JZZ) return;
   if (!JZZ.input) JZZ.input = {};
 
-  var _version = '1.0';
+  var _version = '1.3';
   function _name(name) { return name ? name : 'Kbd'; }
 
   function _copy(obj) {
@@ -25,14 +25,9 @@
   function _style(key, stl) {
     for(var k in stl) key.style[k] = stl[k];
   }
-  function _keyNum(name) {
-    if (!(typeof name == 'string')) return undefined;
-    var base = {C:0, D:1, E:2, F:3, G:4, A:5, B:6}[name.substr(0, 1).toUpperCase()];
-    if (typeof base == 'undefined') return undefined;
-    var oct = name.substr(1);
-    if (parseInt(oct) != oct) return undefined;
-    var num = 7 * oct + base;
-    return num >= 0 && num <= 74 ? num : undefined;
+  function _keyNum(n, up) {
+    n = JZZ.MIDI.noteValue(n);
+    return (up ? [0, 1, 1, 2, 2, 3, 4, 4, 5, 5, 6, 6] : [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6])[n % 12] + Math.floor(n / 12) * 7;
   }
   function _keyMidi(n) {
     return Math.floor(n / 7) * 12 + {0:0, 1:2, 2:4, 3:5, 4:7, 5:9, 6:11}[n % 7];
@@ -73,14 +68,12 @@
         piano.release(midi);
         piano.mouseDown = false;
       }
-      _firefoxBug = e.buttons;
     };
   }
   function _handleMouseOff(piano) {
     return function(e) {
       e = _fixBtnUp(e);
       if (_lftBtnUp(e)) piano.mouseDown = false;
-      _firefoxBug = e.buttons;
     };
   }
   function _watchMouseButtons() {
@@ -128,19 +121,19 @@
       if (key == parseInt(key)) this.params[key] = _copy(arg[key]);
       else {
         if (key == 'chan') continue;
-        if ((key == 'from' || key == 'to') && typeof _keyNum(arg[key]) == 'undefined') continue;
+        if ((key == 'from' || key == 'to') && typeof JZZ.MIDI.noteValue(arg[key]) == 'undefined') continue;
         common[key] = arg[key];
       }
     }
     for (key in this.params) {
       this.bins.push(key);
       for (var k in common) {
-        if ((k == 'from' || k == 'to') && typeof _keyNum(this.params[key][k]) == 'undefined') this.params[key][k] = common[k];
+        if ((k == 'from' || k == 'to') && (typeof this.params[key][k] == 'undefined' || typeof JZZ.MIDI.noteValue(this.params[key][k]) == 'undefined')) this.params[key][k] = common[k];
         if (!(k in this.params[key])) this.params[key][k] = common[k];
       }
       var from = this.params[key]['from'];
       var to = this.params[key]['to'];
-      if (_keyNum(from) > _keyNum(to)) {
+      if (JZZ.MIDI.noteValue(from) > JZZ.MIDI.noteValue(to)) {
         this.params[key]['from'] = to;
         this.params[key]['to'] = from;
       }
@@ -163,17 +156,25 @@
     this.noteOff(midi);
   }
   Piano.prototype.forward = function(msg) {
-    var midi = msg[1];
+    var n = msg[1];
     if (msg.getChannel() == this.chan) {
+      var s = msg[0] >> 4;
       if (msg.isNoteOn()) {
-        this.playing[midi] = 'E';
-        _style(this.keys[midi], this.stl1[midi]);
-        _style(this.keys[midi], this.locs[midi]);
+        this.playing[n] = 'E';
+        _style(this.keys[n], this.stl1[n]);
+        _style(this.keys[n], this.locs[n]);
       }
       else if (msg.isNoteOff()) {
-        this.playing[midi] = undefined;
-        _style(this.keys[midi], this.stl0[midi]);
-        _style(this.keys[midi], this.locs[midi]);
+        this.playing[n] = undefined;
+        _style(this.keys[n], this.stl0[n]);
+        _style(this.keys[n], this.locs[n]);
+      }
+      else if (s == 0xb && (n == 0x78 || n == 0x7b)) { // all notes/snd off
+        for (var k in this.playing) if (this.playing[k]) {
+          this.playing[k] = undefined;
+          _style(this.keys[k], this.stl0[k]);
+          _style(this.keys[k], this.locs[k]);
+        }
       }
     }
     this.emit(msg);
@@ -234,7 +235,7 @@
     at.innerHTML = '';
     var pos = this.current.pos.toUpperCase();
     var first = _keyNum(this.current.from);
-    var last = _keyNum(this.current.to);
+    var last = _keyNum(this.current.to, true);
     var num = last - first + 1;
     var w = num * this.current.ww + 1;
     var h = this.current.wl + 1;
@@ -258,6 +259,7 @@
     piano.style.WebkitUserSelect = 'none';
     piano.style.MsUserSelect = 'none';
     piano.style.KhtmlUserSelect = 'none';
+    piano.style.cursor = 'default';
 
     if (pos == 'E' || pos == 'W') {
       piano.style.width = h + 'px';
