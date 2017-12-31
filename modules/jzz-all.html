@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>JZZ test</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="../javascript/JZZ.js"></script>
+<script src="../javascript/JZZ.synth.OSC.js"></script>
+<script src="../javascript/JZZ.input.Kbd.js"></script>
+<script src="../javascript/JZZ.input.ASCII.js"></script>
+<style type="text/css">
+.inner {position:absolute; bottom:0; left:0; width:100%; text-align:center;}
+#midiIn { height: 11em;}
+</style>
+</head>
+
+<body>
+<h1>JZZ <span id="jzzVersion">0.0</span> test</h1>
+
+<p>This page may require additional software. Please see more <a href=https://jazz-soft.net/doc/JZZ/>details</a>...</p>
+
+<p id=out></p>
+<p id=piano></p>
+<pre id=midiIn></pre>
+
+<p>
+<a href=index.html>Back</a>
+</p>
+
+<script><!--
+document.getElementById("jzzVersion").innerHTML = 'v.' + JZZ.info().ver;
+
+var out = document.getElementById('out');
+var div;
+var btn;
+var span;
+var statusOut = {};
+var statusIn = {};
+var output = [];
+
+function player(name) {
+  return function() {
+    JZZ().openMidiOut(name)
+      .wait(500).send([0x90,60,127]).wait(500).send([0x90,64,127])
+      .wait(500).send([0x90,67,127]).wait(500).send([0x90,72,127])
+      .wait(500).send([0x90,60,0]).send([0x90,64,0]).send([0x90,67,0]).send([0x90,72,0]);
+  }
+}
+
+function openOut(name) {
+  JZZ().openMidiOut(name)
+    .or(function() { statusOut[name].innerHTML = ' - Cannot open!';})
+    .and(function() { statusOut[name].innerHTML = ' - OK!';});
+}
+
+function openIn(name) {
+  JZZ().openMidiIn(name)
+    .or(function() { statusIn[name].innerHTML = ' - Cannot open!';})
+    .and(function() { statusIn[name].innerHTML = ' - OK!';})
+    .connect(function(msg) {
+      output.push(name + " : " + msg.toString());
+      if (output.length > 10) output.splice(0, 1);
+      document.getElementById("midiIn").innerHTML = output.join("\n");
+    });
+}
+
+JZZ.synth.OSC.register("Web Audio");
+var ascii = JZZ.input.ASCII({Z:'C5', S:'C#5', X:'D5', D:'D#5', C:'E5', V:'F5', G:'F#5', B:'G5', H:'Ab5', N:'A5', J:'Bb5', M:'B5'});
+JZZ.input.Kbd.register("HTML Piano", {at: 'piano', from: 'C5', to: 'B5', onCreate: function(){
+  this.getBlackKeys().setStyle({color:'#fff'});
+  this.getKey('C5').setInnerHTML('<span class=inner>Z</span>');
+  this.getKey('C#5').setInnerHTML('<span class=inner>S</span>');
+  this.getKey('D5').setInnerHTML('<span class=inner>X</span>');
+  this.getKey('D#5').setInnerHTML('<span class=inner>D</span>');
+  this.getKey('E5').setInnerHTML('<span class=inner>C</span>');
+  this.getKey('F5').setInnerHTML('<span class=inner>V</span>');
+  this.getKey('F#5').setInnerHTML('<span class=inner>G</span>');
+  this.getKey('G5').setInnerHTML('<span class=inner>B</span>');
+  this.getKey('G#5').setInnerHTML('<span class=inner>H</span>');
+  this.getKey('A5').setInnerHTML('<span class=inner>N</span>');
+  this.getKey('A#5').setInnerHTML('<span class=inner>J</span>');
+  this.getKey('B5').setInnerHTML('<span class=inner>M</span>');
+  ascii.connect(this);
+  this.connect(JZZ().openMidiOut());
+}});
+
+
+JZZ().or(function(){
+    div = document.createElement('div');
+    div.textContent = "Jazz-MIDI extension is not available or no MIDI ports found.";
+    out.appendChild(div);
+  }).and(function(){
+    var outs = this.info().outputs;
+    var ins = this.info().inputs;
+    div = document.createElement('div');
+    div.textContent = outs.length ? "MIDI Out:" : "MIDI Out: not found!";
+    out.appendChild(div);
+    for (var i = 0; i < outs.length; i++) {
+      div = document.createElement('div');
+      btn = document.createElement('button');
+      btn.textContent = "play";
+      btn.onclick = player(outs[i].name);
+      div.appendChild(btn);
+      span = document.createElement('span');
+      span.textContent = " - " + outs[i].name;
+      div.appendChild(span);
+      span = document.createElement('span');
+      div.appendChild(span);
+      statusOut[outs[i].name] = span;
+      out.appendChild(div);
+      openOut(outs[i].name);
+    }
+    div = document.createElement('div');
+    div.textContent = ins.length ? "MIDI In:" : "MIDI In: not found!";
+    out.appendChild(div);
+    for (var i = 0; i < ins.length; i++) {
+      div = document.createElement('div');
+      span = document.createElement('span');
+      span.textContent = "listening: - " + ins[i].name;
+      div.appendChild(span);
+      span = document.createElement('span');
+      div.appendChild(span);
+      statusIn[ins[i].name] = span;
+      out.appendChild(div);
+      openIn(ins[i].name);
+    }
+  });
+--></script>
+
+</body>
+</html>

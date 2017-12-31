@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Web MIDI</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<h1>Web MIDI</h1>
+
+<div id=out><div>JavaScript is disabled</div></div>
+
+<script><!--
+var out = document.getElementById('out');
+var status = "<div>Web MIDI is not supported</div>";
+
+function onGood(midi) {
+  status = "<div>WebMIDI API is available!</p>";
+  if (midi.outputs.size) {
+    status += "<div>MIDI-Out ports:</div><ul>"
+    midi.outputs.forEach(function(port, key) {
+      status += "<li>" + port.name + "</li>";
+      port.close();
+    });
+    status += "</ul></div>"
+  }
+  else {
+    status += "<div>MIDI-Out ports: NONE available.</div>"
+  }
+  if (midi.inputs.size) {
+    status += "<div>MIDI-In ports:</div><ul>"
+    midi.inputs.forEach(function(port, key) {
+      status += "<li>" + port.name + "</li>";
+      port.close();
+    });
+    status += "</ul></div>"
+  }
+  else {
+    status += "<div>MIDI-In ports: NONE available.</div>"
+  }
+  out.innerHTML = status;
+}
+
+function onBad() {
+  status = "<div>Web MIDI is not available!</div>";
+  out.innerHTML = status;
+}
+
+if (navigator.requestMIDIAccess) {
+  status = "<div>WebMIDI API is supported!</div>";
+  navigator.requestMIDIAccess({sysex: true, software: true}).then(onGood, onBad);
+}
+
+out.innerHTML = status;
+--></script>
+
+<p>
+<a href=index.html>Back</a>
+</p>
+
+</body>
+</html>
