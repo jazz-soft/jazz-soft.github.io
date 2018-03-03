@@ -1,7 +1,19 @@
-(function() {
+(function(global, factory) {
+  if (typeof exports === 'object' && typeof module !== 'undefined') {
+    module.exports = factory;
+  }
+  else if (typeof define === 'function' && define.amd) {
+    define('JZZ.midi.Gear', ['JZZ'], factory);
+  }
+  else {
+    factory(JZZ);
+  }
+})(this, function(JZZ) {
+
 JZZ.MIDI.prototype.isIdResponse = function() {
   return this[0] == 0xf0 && this[1] == 0x7e && this[3] == 6 && this[4] == 2 && this[this.length-1] == 0xf7 && this.length > 10;
-}
+};
+
 JZZ.MIDI.prototype.gearInfo = function() {
   if (!this.isIdResponse()) return undefined;
   var vnd;
@@ -26,7 +38,8 @@ JZZ.MIDI.prototype.gearInfo = function() {
     }
   }
   return ret;
-}
+};
+
 function _n2c(n) { return String.fromCharCode(n); }
 function _a2s(a) { return a.map(_n2c).join(''); }
 var _m = {};
@@ -274,4 +287,4 @@ _m[" )"] = { // Novation
 "\x01\x00!\x00":{m:"Nova",d:"Synth Module"}
 };
 //#end
-})();
+});
