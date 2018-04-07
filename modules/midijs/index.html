@@ -47,7 +47,6 @@ function hideLoading(){
  if (loading.parentElement) loading.parentElement.removeChild(loading);
 }
 function play() {
-  JZZ.util.iosSound();
   showLoading();
   JZZ.synth.MIDIjs({ soundfontUrl: "./soundfont/", instrument: "acoustic_grand_piano" })
     .or(function(){ hideLoading(); alert('Cannot load MIDI.js '+this.err()); })
