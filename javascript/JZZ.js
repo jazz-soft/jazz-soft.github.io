@@ -6,12 +6,19 @@
     define('JZZ', [], factory);
   }
   else {
+    if (global.JZZ && global.JZZ.MIDI) return;
     global.JZZ = factory();
   }
 })(this, function(){
 
-  var _version = '0.4.4';
+  var _scope = typeof window === 'undefined' ? global : window;
+  var _version = '0.4.6';
   var i, j, k, m, n;
+
+  var _time = Date.now || function () { return new Date().getTime(); };
+  var _startTime = _time();
+  var _now = typeof performance != 'undefined' && performance.now ?
+    function() { return performance.now(); } : function() { return _time() - _startTime; };
 
   // _R: common root for all async objects
   function _R() {
@@ -52,7 +59,7 @@
     ret._ready = false;
     ret._queue = [];
     return ret;
-  }
+  };
   function _wait(obj, delay) { setTimeout(function() { obj._resume(); }, delay); }
   _R.prototype.wait = function(delay) {
     if (!delay) return this;
@@ -298,8 +305,25 @@
     this._outs = [];
   }
   _M.prototype = new _R();
-
-  _M.prototype._receive = function(msg) { this._emit(msg); }; // override!
+  _M.prototype._filter = function(msg) {
+    if (this._orig._mpe) {
+      var out;
+      var outs = 0;
+      if (this._handles && this._handles.length) {
+        outs = this._handles.length;
+        out = this._handles[0];
+      }
+      if (this._outs && this._outs.length) {
+        outs = this._outs.length;
+        out = this._outs[0];
+      }
+      if (outs == 1 && !out._mpe) {
+        msg = this._orig._mpe.filter(msg);
+      }
+    }
+    return msg;
+  };
+  _M.prototype._receive = function(msg) { this._emit(this._filter(msg)); };
   function _receive(msg) { this._receive(msg); }
   _M.prototype.send = function() {
     this._push(_receive, [MIDI.apply(null, arguments)]);
@@ -341,6 +365,66 @@
   };
   _M.prototype.disconnect = function(arg) {
     this._push(_disconnect, [arg]);
+    return this;
+  };
+  _M.prototype.ch = function(n) {
+    if (typeof n == 'undefined') return this;
+    if (n != parseInt(n) || n < 0 || n > 15) throw RangeError('Bad channel value: ' + n  + ' (must be from 0 to 15)');
+    var chan = new _C(this, n);
+    this._push(_kick, [chan]);
+    return chan;
+  };
+  function _mpe(m, n) {
+    if (!this._orig._mpe) this._orig._mpe = new MPE();
+    this._orig._mpe.setup(m, n);
+  }
+  _M.prototype.mpe = function(m, n) {
+    if (typeof m == 'undefined' && typeof n == 'undefined') return this;
+    MPE.validate(m, n);
+    var chan = n ? new _E(this, m, n) : new _C(this, m);
+    this._push(_mpe, [m, n]);
+    this._push(_kick, [chan]);
+    return chan;
+  };
+
+  // _C: MIDI Channel object
+  function _C(port, chan) {
+    _M.apply(this);
+    this._port = port._orig;
+    this._chan = chan;
+    _rechain(this, this._port, 'ch');
+    _rechain(this, this._port, 'mpe');
+    _rechain(this, this._port, 'connect');
+    _rechain(this, this._port, 'disconnect');
+    _rechain(this, this._port, 'close');
+  }
+  _C.prototype = new _M();
+  _C.prototype.channel = function() { return this._chan; };
+  _C.prototype._receive = function(msg) { this._port._receive(msg); };
+  _C.prototype.note = function(n, v, t) {
+    this.noteOn(n, v);
+    if (t) this.wait(t).noteOff(n);
+    return this;
+  };
+
+  // _E: MPE Channel object
+  function _E(port, m, n) {
+    _M.apply(this);
+    this._port = port._orig;
+    this._master = m;
+    this._band = n;
+    _rechain(this, this._port, 'ch');
+    _rechain(this, this._port, 'mpe');
+    _rechain(this, this._port, 'connect');
+    _rechain(this, this._port, 'disconnect');
+    _rechain(this, this._port, 'close');
+  }
+  _E.prototype = new _M();
+  _E.prototype.channel = function() { return this._master; };
+  _E.prototype._receive = function(msg) { this._port._receive(msg); };
+  _E.prototype.note = function(n, v, t) {
+    this.noteOn(n, v);
+    if (t) this.wait(t).noteOff(n);
     return this;
   };
 
@@ -529,7 +613,8 @@
     var etc;
     var head = [];
     var tail = [];
-    for (var i=0; i<arr.length; i++) {
+    var i;
+    for (i = 0; i < arr.length; i++) {
       var name = arr[i].toString().toLowerCase();
       if (dup[name]) continue;
       dup[name] = true;
@@ -543,6 +628,7 @@
   }
 
   function _initJZZ(opt) {
+    _initAudioContext();
     _jzz = new _J();
     _jzz._options = opt;
     _jzz._push(_tryAny, [_filterEngines(opt)]);
@@ -572,7 +658,7 @@
     var watcher;
     _closeAll = function() {
       for (var i = 0; i < this.clients.length; i++) this._close(this.clients[i]);
-    }
+    };
     _engine._refresh = function() {
       _engine._outs = [];
       _engine._ins = [];
@@ -698,7 +784,7 @@
     };
     _engine._close = function() {
       for (var i = 0; i < _engine._inArr.length; i++) if (_engine._inArr[i].open) _engine._inArr[i].plugin.MidiInClose();
-      _engine.unwatch();
+      _engine._unwatch();
     };
     function onChange() {
       if (watcher) {
@@ -759,7 +845,7 @@
     var watcher;
     _closeAll = function() {
       for (var i = 0; i < this.clients.length; i++) this._close(this.clients[i]);
-    }
+    };
     _engine._refresh = function() {
       _engine._outs = [];
       _engine._ins = [];
@@ -887,11 +973,11 @@
             watcher = false;
           }
         }, 0);
-      }
-    }
+      };
+    };
     _engine._unwatch = function() {
       _engine._access.onstatechange = undefined;
-    }
+    };
   }
   function _initCRX(msg, ver) {
     _engine._type = 'extension';
@@ -924,7 +1010,7 @@
     };
     _closeAll = function() {
       for (var i = 0; i < this.clients.length; i++) this._close(this.clients[i]);
-    }
+    };
     _engine._openOut = function(port, name) {
       var impl = _engine._outMap[name];
       if (!impl) {
@@ -1104,6 +1190,7 @@
     if (!_jzz) _initJZZ(opt);
     return _jzz;
   };
+  JZZ.now = _now;
   JZZ.info = function() { return _J.prototype.info();};
   JZZ.Widget = function(arg) {
     var obj = new _M();
@@ -1326,13 +1413,20 @@
 
   function MIDI(arg) {
     var self = this instanceof MIDI ? this : self = new MIDI();
-    self._from = arg instanceof MIDI ? arg._from.slice() : [];
+    if (arg instanceof MIDI) {
+      self._from = arg._from.slice();
+      self._mpe = arg._mpe;
+    }
+    else self._from = [];
     if (!arguments.length) return self;
     var arr = arg instanceof Array ? arg : arguments;
     for (i = 0; i < arr.length; i++) {
       n = arr[i];
-      if (i == 1 && self[0] >= 0x80 && self[0] <= 0xAF) n = MIDI.noteValue(n);
-      if (n != parseInt(n) || n<0 || n>255) _throw(arr[i]);
+      if (i == 1) {
+        if (self[0] >= 0x80 && self[0] <= 0xAF) n = MIDI.noteValue(n);
+        if (self[0] >= 0xC0 && self[0] <= 0xCF) n = MIDI.programValue(n);
+      }
+      if (n != parseInt(n) || n < 0 || n > 255) _throw(arr[i]);
       self.push(n);
     }
     return self;
@@ -1340,32 +1434,36 @@
   MIDI.prototype = [];
   MIDI.prototype.constructor = MIDI;
   var _noteNum = {};
-  MIDI.noteValue = function(x) { return _noteNum[x.toString().toLowerCase()]; };
+  MIDI.noteValue = function(x) { return typeof x == 'undefined' ? undefined : _noteNum[x.toString().toLowerCase()]; };
   MIDI.programValue = function(x) { return x; };
+  MIDI.freq = function(n, a) {
+    if (typeof a == 'undefined') a = 440.0;
+    return (a * Math.pow(2, (_7b(MIDI.noteValue(n), n) - 69.0) / 12.0));
+  };
 
-  var _noteMap = {c:0, d:2, e:4, f:5, g:7, a:9, b:11, h:11};
+  var _noteMap = { c:0, d:2, e:4, f:5, g:7, a:9, b:11, h:11 };
   for (k in _noteMap) {
     if (!_noteMap.hasOwnProperty(k)) continue;
     for (n = 0; n < 12; n++) {
       m = _noteMap[k] + n * 12;
       if (m > 127) break;
       _noteNum[k+n] = m;
-      if (m > 0) { _noteNum[k + 'b' + n] = m - 1; _noteNum[k + 'bb' + n] = m - 2;}
-      if (m < 127) { _noteNum[k + '#' + n] = m + 1; _noteNum[k + '##' + n] = m + 2;}
+      if (m > 0) { _noteNum[k + 'b' + n] = m - 1; _noteNum[k + 'bb' + n] = m - 2; }
+      if (m < 127) { _noteNum[k + '#' + n] = m + 1; _noteNum[k + '##' + n] = m + 2; }
     }
   }
   for (n = 0; n < 128; n++) _noteNum[n] = n;
   function _throw(x){ throw RangeError('Bad MIDI value: ' + x);}
   function _ch(n) { if (n != parseInt(n) || n<0 || n>0xf) _throw(n); return n;}
-  function _7b(n) { if (n != parseInt(n) || n<0 || n>0x7f) _throw(n); return n;}
+  function _7b(n, m) { if (n != parseInt(n) || n<0 || n>0x7f) _throw(typeof m == 'undefined' ? n : m); return n;}
   function _lsb(n){ if (n != parseInt(n) || n<0 || n>0x3fff) _throw(n); return n & 0x7f;}
   function _msb(n){ if (n != parseInt(n) || n<0 || n>0x3fff) _throw(n); return n >> 7;}
   var _helper = {
-    noteOff : function(c, n){ return [0x80+_ch(c), _7b(MIDI.noteValue(n)), 0];},
-    noteOn  : function(c, n, v){ return [0x90+_ch(c), _7b(MIDI.noteValue(n)), _7b(v)];},
-    aftertouch : function(c, n, v){ return [0xA0+_ch(c), _7b(MIDI.noteValue(n)), _7b(v)];},
+    noteOff : function(c, n, v){ if (typeof v == 'undefined') v = 64; return [0x80+_ch(c), _7b(MIDI.noteValue(n), n), _7b(v)];},
+    noteOn  : function(c, n, v){ if (typeof v == 'undefined') v = 127; return [0x90+_ch(c), _7b(MIDI.noteValue(n), n), _7b(v)];},
+    aftertouch : function(c, n, v){ return [0xA0+_ch(c), _7b(MIDI.noteValue(n), n), _7b(v)];},
     control : function(c, n, v){ return [0xB0+_ch(c), _7b(n), _7b(v)];},
-    program : function(c, n){ return [0xC0+_ch(c), _7b(MIDI.programValue(n))];},
+    program : function(c, n){ return [0xC0+_ch(c), _7b(MIDI.programValue(n), n)];},
     pressure: function(c, n){ return [0xD0+_ch(c), _7b(n)];},
     pitchBend: function(c, n){ return [0xE0+_ch(c), _lsb(n), _msb(n)];},
     bankMSB : function(c, n){ return [0xB0+_ch(c), 0x00, _7b(n)];},
@@ -1392,6 +1490,8 @@
     soft   : function(c, b){ return [0xB0+_ch(c), 0x43, b ? 127 : 0];},
     allSoundOff : function(c){ return [0xB0+_ch(c), 0x78, 0];},
     allNotesOff : function(c){ return [0xB0+_ch(c), 0x7b, 0];},
+  };
+  var _helperNC = { // no channel
     mtc: function(t){ return [0xF1, _mtc(t)];},
     songPosition: function(n){ return [0xF2, _lsb(n), _msb(n)];},
     songSelect : function(n){ return [0xF3, _7b(n)];},
@@ -1405,11 +1505,47 @@
     sxFullFrame : function(t){ return [0xF0, 0x7F, 0x7F, 0x01, 0x01, _hrtype(t), t.getMinute(), t.getSecond(), t.getFrame(), 0xF7];},
     reset : function(){ return [0xFF];}
   };
-  function _copyHelper(name, func) {
-    MIDI[name] = function(){ return new MIDI(func.apply(0, arguments));};
-    _M.prototype[name] = function(){ this.send(func.apply(0, arguments)); return this;};
+  function _copyHelperNC(name, func) {
+    MIDI[name] = function() { return new MIDI(func.apply(0, arguments)); };
+    _M.prototype[name] = function() { this.send(func.apply(0, arguments)); return this; };
   }
+  function _copyHelper(name, func) {
+    _copyHelperNC(name, func);
+    _C.prototype[name] = function() {
+      this.send(func.apply(0, [this._chan].concat(Array.prototype.slice.call(arguments)))); return this;
+    };
+    _E.prototype[name] = function() {
+      var chan;
+      var args = Array.prototype.slice.call(arguments);
+      if (args.length < func.length) args = [this._master].concat(args);
+      else {
+        chan = _7b(MIDI.noteValue(args[0], args[0]));
+        args[0] = this._master;
+      }
+      var msg = func.apply(0, args);
+      msg.mpe = chan;
+      this.send(msg);
+      return this;
+    };
+  }
+  for (k in _helperNC) if (_helperNC.hasOwnProperty(k)) _copyHelper(k, _helperNC[k]);
   for (k in _helper) if (_helper.hasOwnProperty(k)) _copyHelper(k, _helper[k]);
+  _E.prototype.noteOn = function(n, v) {
+    var msg = MIDI.noteOn(this._master, n, v);
+    msg._mpe = msg[1];
+    this.send(msg);
+    return this;
+  };
+  _E.prototype.noteOff = function(n, v) {
+    var msg = MIDI.noteOff(this._master, n, v);
+    msg._mpe = msg[1];
+    this.send(msg);
+    return this;
+  };
+  _E.prototype.aftertouch = function(n, v) {
+    this.send(MIDI.aftertouch(this._master, n, v));
+    return this;
+  };
 
   var _channelMap = { a:10, b:11, c:12, d:13, e:14, f:15, A:10, B:11, C:12, D:13, E:14, F:15 };
   for (k = 0; k < 16; k++) _channelMap[k] = k;
@@ -1604,6 +1740,82 @@
 
   JZZ.MIDI = MIDI;
 
+  function MPE() {
+    var self = this instanceof MPE ? this : self = new MPE();
+    self.reset();
+    if (arguments.length) MPE.prototype.setup.apply(self, arguments);
+    return self;
+  }
+  MPE.validate = function(arg) {
+    var a = arg instanceof Array ? arg : arguments;
+    if (a[0] != parseInt(a[0]) || a[0] < 0 || a[0] > 14) throw RangeError('Bad master channel value: ' + a[0]);
+    if (a[1] != parseInt(a[1]) || a[1] < 0 || a[0] + a[1] > 15) throw RangeError('Bad zone size value: ' + a[1]);
+  };
+  MPE.prototype.reset = function() { for (var n = 0; n < 16; n++) this[n] = { band: 0, master: n }; };
+  MPE.prototype.setup = function(m, n) {
+    MPE.validate(m, n);
+    var k;
+    var last = m + n;
+    if (this[m].master == m && this[m].band == n) return;
+    if (!n && !this[m].band) return;
+    if (this[m].band) {
+      k = m + this[m].band;
+      if (last < k) last = k;
+    }
+    else if (this[m].master == m - 1) {
+      k = m - 1;
+      k = k + this[k].band;
+      if (last < k) last = k;
+      this[m - 1] = { band: 0, master: m - 1 };
+    }
+    else if (this[m].master != m) {
+      k = this[m].master;
+      k = k + this[k].band;
+      if (last < k) last = k;
+      this[this[m].master].band = m - this[m].master - 1;
+    }
+    this[m].master = m;
+    this[m].band = n;
+    for (k = m + 1; k <= m + n; k++) {
+      if (this[k].band && last < k + this[k].band) last = k + this[k].band;
+      this[k] = { band: 0, master: m };
+    }
+    for (; k <= last; k++) this[k] = { band: 0, master: k };
+  };
+  MPE.prototype.filter = function(msg) {
+    var c = msg.getChannel();
+    if (!this[c] || !this[this[c].master].band) return msg;
+    var m = this[c].master;
+    var n = this[m].band;
+    var i, j, k;
+    if (typeof msg._mpe != 'undefined') {
+      k = 256;
+      for (i = m + 1; i <= m + n; i++) {
+        if (!this[i].notes) {
+          if (k > 0) { c = i; k = 0; }
+        }
+        else {
+          if (k > this[i].notes.length) { c = i; k = this[i].notes.length; }
+          for (j = 0; j < this[i].notes.length; j++) {
+            if (this[i].notes[j] == msg._mpe) { c = i; k = -1; break; }
+          }
+        }
+      }
+      msg.setChannel(c);
+      msg._mpe = undefined;
+    }
+    if (c == m) return msg; // bad mpe
+    if (msg.isNoteOn()) {
+      if (!this[c].notes) this[c].notes = [];
+      _push(this[c].notes, msg.getNote());
+    }
+    else if (msg.isNoteOff()) {
+      if (this[c].notes) _pop(this[c].notes, msg.getNote());
+    }
+    return msg;
+  };
+  JZZ.MPE = MPE;
+
   JZZ.lib = {};
   JZZ.lib.openMidiOut = function(name, engine) {
     var port = new _M();
@@ -1632,36 +1844,368 @@
     return true;
   };
   var _ac;
-  JZZ.lib.getAudioContext = function() { return _ac; };
-  if (typeof window !== 'undefined') {
-    var AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (AudioContext) {
-     _ac = new AudioContext();
-      if (_ac && !_ac.createGain) _ac.createGain = _ac.createGainNode;
-      var _activateAudioContext = function() {
-        if (_ac.state != 'running') {
-          _ac.resume();
-          var osc = _ac.createOscillator();
-          var gain = _ac.createGain();
-          try { gain.gain.value = 0; } catch (err) {}
-          gain.gain.setTargetAtTime(0, _ac.currentTime, 0.01);
-          osc.connect(gain);
-          gain.connect(_ac.destination);
-          if (!osc.start) osc.start = osc.noteOn;
-          if (!osc.stop) osc.stop = osc.noteOff;
-          osc.start(0.1); osc.stop(0.11);
-        }
-        else {
-          document.removeEventListener('touchend', _activateAudioContext);
-          document.removeEventListener('mousedown', _activateAudioContext);
-          document.removeEventListener('keydown', _activateAudioContext);
-        }
-      };
-      document.addEventListener('touchend', _activateAudioContext);
-      document.addEventListener('mousedown', _activateAudioContext);
-      document.addEventListener('keydown', _activateAudioContext);
-      _activateAudioContext();
+  function _initAudioContext() {
+    if (!_ac && typeof window !== 'undefined') {
+      var AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) {
+        _ac = new AudioContext();
+        if (_ac && !_ac.createGain) _ac.createGain = _ac.createGainNode;
+        var _activateAudioContext = function() {
+          if (_ac.state != 'running') {
+            _ac.resume();
+            var osc = _ac.createOscillator();
+            var gain = _ac.createGain();
+            try { gain.gain.value = 0; } catch (err) {}
+            gain.gain.setTargetAtTime(0, _ac.currentTime, 0.01);
+            osc.connect(gain);
+            gain.connect(_ac.destination);
+            if (!osc.start) osc.start = osc.noteOn;
+            if (!osc.stop) osc.stop = osc.noteOff;
+            osc.start(0.1); osc.stop(0.11);
+          }
+          else {
+            document.removeEventListener('touchend', _activateAudioContext);
+            document.removeEventListener('mousedown', _activateAudioContext);
+            document.removeEventListener('keydown', _activateAudioContext);
+          }
+        };
+        document.addEventListener('touchend', _activateAudioContext);
+        document.addEventListener('mousedown', _activateAudioContext);
+        document.addEventListener('keydown', _activateAudioContext);
+        _activateAudioContext();
+      }
     }
   }
+  JZZ.lib.getAudioContext = function() { _initAudioContext(); return _ac; };
+
+  // Web MIDI API
+  var _wma;
+  var _resolves = [];
+  var _onstatechange;
+  var _outputUUID = {};
+  var _inputUUID = {};
+  var _outputMap = {};
+  var _inputMap = {};
+  function _noop() {}
+
+  var Promise = _scope.Promise;
+  if (typeof Promise !== 'function') {
+    Promise = function(executor) {
+      this.executor = executor;
+    };
+    Promise.prototype.then = function(resolve, reject) {
+      if (typeof resolve !== 'function') {
+        resolve = function() {};
+      }
+      if (typeof reject !== 'function') {
+        reject = function() {};
+      }
+      this.executor(resolve, reject);
+    };
+  }
+  var Map = _scope.Map;
+  if (typeof Map !== 'function') { // for some really antique browsers
+    Map = function() {
+      this.store = {};
+      this.keys = [];
+    };
+    Map.prototype.set = function(id, obj) {
+      if (typeof this.store[id] === 'undefined') this.keys.push(id);
+      this.store[id] = obj;
+      this.size = this.keys.length;
+      return this;
+    };
+    Map.prototype.get = function(id) {
+      return this.store[id];
+    };
+    Map.prototype.delete = function(id) {
+      delete this.store[id];
+      var index = this.keys.indexOf(id);
+      if (index > -1) this.keys.splice(index, 1);
+      this.size = this.keys.length;
+      return this;
+    };
+    Map.prototype.forEach = function(cb) {
+      var l = this.keys.length;
+      var i, e;
+      for (i = 0; i < l; i++) {
+        e = this.store[this.keys[i]];
+        cb(e);
+      }
+    };
+  }
+  function generateUUID() {
+    var a = new Array(64);
+    for (var i = 0; i < 64; i++) {
+      a[i] = Math.floor((Math.random() * 16) % 16).toString(16).toUpperCase();
+    }
+    return a.join('');
+  }
+  function getUUID(name, input) {
+    if (input) {
+      if (!_inputUUID[name]) _inputUUID[name] = generateUUID();
+      return _inputUUID[name];
+    }
+    else {
+      if (!_outputUUID[name]) _outputUUID[name] = generateUUID();
+      return _outputUUID[name];
+    }
+  }
+  function MIDIAccess() {
+    this.sysexEnabled = true;
+    this.outputs = new Map();
+    this.inputs = new Map();
+    var self = this;
+    function _notify(p) {
+      return function() { _onstatechange(new MIDIConnectionEvent(p, self)); };
+    }
+    function _onwatch(x) {
+      var i, p, f;
+      for (i = 0; i < x.inputs.added.length; i++) {
+        p = new MIDIInput(x.inputs.added[i]);
+        self.inputs.set(p.id, p);
+        f = _notify(p);
+        p.open().then(f, f);
+      }
+      for (i = 0; i < x.outputs.added.length; i++) {
+        p = new MIDIOutput(x.outputs.added[i]);
+        self.outputs.set(p.id, p);
+        f = _notify(p);
+        p.open().then(f, f);
+      }
+      for (i = 0; i < x.inputs.removed.length; i++) {
+        p = self.inputs.get(_inputUUID[x.inputs.removed[i].name]);
+        p.close();
+        self.inputs.delete(p.id);
+        _onstatechange(new MIDIConnectionEvent(p, self));
+      }
+      for (i = 0; i < x.outputs.removed.length; i++) {
+        p = self.outputs.get(_outputUUID[x.outputs.removed[i].name]);
+        p.close();
+        self.outputs.delete(p.id);
+        _onstatechange(new MIDIConnectionEvent(p, self));
+      }
+    }
+    Object.defineProperty(this, 'onstatechange', {
+      get: function() { return _onstatechange; },
+      set: function(value) {
+        if (value instanceof Function) {
+          if (!_onstatechange) {
+            JZZ().onChange(_onwatch);
+          }
+          _onstatechange = value;
+        }
+        else {
+          if (_onstatechange) {
+            JZZ().onChange().disconnect(_onwatch);
+            _onstatechange = undefined;
+          }
+        }
+      }
+    });
+  }
+  MIDIAccess.prototype.onstatechange = function() {};
+
+  function MIDIConnectionEvent(port, target) {
+    this.bubbles = false;
+    this.cancelBubble = false;
+    this.cancelable = false;
+    this.currentTarget = target;
+    this.defaultPrevented = false;
+    this.eventPhase = 0;
+    this.path = [];
+    this.port = port;
+    this.returnValue = true;
+    this.srcElement = target;
+    this.target = target;
+    this.timeStamp = _now();
+    this.type = 'statechange';
+  }
+
+  function MIDIMessageEvent(port, data) {
+    this.bubbles = false;
+    this.cancelBubble = false;
+    this.cancelable = false;
+    this.currentTarget = port;
+    this.data = data;
+    this.defaultPrevented = false;
+    this.eventPhase = 0;
+    this.path = [];
+    this.receivedTime = _now();
+    this.returnValue = true;
+    this.srcElement = port;
+    this.target = port;
+    this.timeStamp = this.receivedTime;
+    this.type = 'midimessage';
+  }
+
+  function MIDIOutput(a) {
+    var self = this;
+    this.type = 'output';
+    this.name = a.name;
+    this.manufacturer = a.manufacturer;
+    this.version = a.version;
+    this.id = getUUID(this.name, false);
+    this.state = 'disconnected';
+    this.connection = 'closed';
+    Object.defineProperty(this, 'onstatechange', {
+      get: function() { return _outputMap[self.name].onstatechange; },
+      set: function(value) {
+        if (value instanceof Function) {
+          _outputMap[self.name].onstatechange = value;
+          //_outputMap[self.name].onstatechange(new MIDIConnectionEvent(self, self));
+        }
+        else {
+          _outputMap[self.name].onstatechange = value;
+        }
+      }
+    });
+  }
+
+  MIDIOutput.prototype.open = function() {
+    var self = this;
+    return new Promise(function(resolve, reject) {
+      var port = _outputMap[self.name];
+      if (port) resolve(self);
+      else {
+        if (!self._resolves) self._resolves = [];
+        self._resolves.push(resolve);
+        if (self._resolves.length == 1) {
+          JZZ().openMidiOut(self.name).or(reject).and(function() {
+            _outputMap[self.name] = this;
+            self.state = 'connected';
+            self.connection = 'open';
+            for (var i = 0; i < self._resolves.length; i++) resolve(self._resolves[i]);
+            delete self._resolves;
+            if (self.onstatechange) self.onstatechange(new MIDIConnectionEvent(self, self));
+          });
+        }
+      }
+    });
+  };
+  MIDIOutput.prototype.close = function() {
+    var port = _outputMap[this.name];
+    if (port) {
+      port.close();
+      this.state = 'disconnected';
+      this.connection = 'closed';
+      if (this.onstatechange) this.onstatechange(new MIDIConnectionEvent(this, this));
+      _outputMap[this.name] = undefined;
+    }
+    return this;
+  };
+  MIDIOutput.prototype.clear = function() {};
+  MIDIOutput.prototype.send = function(data, timestamp) {
+    var port = _outputMap[this.name];
+    if (port) {
+      var v = [];
+      for (var i = 0; i < data.length; i++) {
+        if (data[i] == Math.floor(data[i]) && data[i] >=0 && data[i] <= 255) v.push(data[i]);
+        else return;
+      }
+      if (timestamp > _now()) {
+        setTimeout(function() { port.send(v); }, timestamp - _now()); 
+      }
+      else port.send(v);
+    }
+    else {
+      var self = this;
+      self.open().then(function() { self.send(data, timestamp); }, _noop);
+    }
+  };
+
+  function MIDIInput(a) {
+    var self = this;
+    this.type = 'input';
+    this.name = a.name;
+    this.manufacturer = a.manufacturer;
+    this.version = a.version;
+    this.id = getUUID(this.name, true);
+    this.state = 'disconnected';
+    this.connection = 'closed';
+    Object.defineProperty(this, 'onstatechange', {
+      get: function() { return _inputMap[self.name].onstatechange; },
+      set: function(value) {
+        if (value instanceof Function) {
+          _inputMap[self.name].onstatechange = value;
+          //_inputMap[self.name].onstatechange(new MIDIConnectionEvent(self, self));
+        }
+        else {
+          _inputMap[self.name].onstatechange = value;
+        }
+      }
+    });
+  }
+  MIDIInput.prototype.onmidimessage = function() {};
+  MIDIInput.prototype.open = function() {
+    var self = this;
+    return new Promise(function(resolve, reject) {
+      var port = _inputMap[self.name];
+      if (port) resolve(self);
+      else {
+        if (!self._resolves) self._resolves = [];
+        self._resolves.push(resolve);
+        if (self._resolves.length == 1) {
+          JZZ().openMidiIn(self.name).or(reject).and(function() {
+            _inputMap[self.name] = this;
+            self.state = 'connected';
+            self.connection = 'open';
+            this.connect(function(msg) {
+              self.onmidimessage(new MIDIMessageEvent(self, new Uint8Array(msg)));
+            });
+            for (var i = 0; i < self._resolves.length; i++) resolve(self._resolves[i]);
+            delete self._resolves;
+            if (self.onstatechange) self.onstatechange(new MIDIConnectionEvent(self, self));
+          });
+        }
+      }
+    });
+  };
+  MIDIInput.prototype.close = function() {
+    var port = _inputMap[this.name];
+    if (port) {
+      port.close();
+      this.state = 'disconnected';
+      this.connection = 'closed';
+      if (this.onstatechange) this.onstatechange(new MIDIConnectionEvent(this, this));
+      _inputMap[this.name] = undefined;
+    }
+    this.onmidimessage = MIDIInput.prototype.onmidimessage;
+    return this;
+  };
+
+  JZZ.requestMIDIAccess = function() {
+    var wma;
+    var counter;
+    function ready() { _wma = wma; for (var i = 0; i < _resolves.length; i++) _resolves[i](_wma); }
+    function countdown() { counter--; if (!counter) ready(); }
+    return new Promise(function(resolve, reject) {
+      if (_wma) resolve(_wma);
+      else {
+        _resolves.push(resolve);
+        if (_resolves.length == 1) {
+          wma = new MIDIAccess();
+          JZZ().or(ready).and(function() {
+            var info = this.info();
+            counter = info.inputs.length + info.outputs.length;
+            var i, p;
+            for (i = 0; i < info.outputs.length; i++) {
+              p = new MIDIOutput(info.outputs[i]);
+              wma.outputs.set(p.id, p);
+              p.open().then(countdown, countdown);
+            }
+            for (i = 0; i < info.inputs.length; i++) {
+              p = new MIDIInput(info.inputs[i]);
+              wma.inputs.set(p.id, p);
+              p.open().then(countdown, countdown);
+            }
+          });
+        }
+      }
+    });
+  };
+  if (typeof navigator !== 'undefined' && !navigator.requestMIDIAccess) navigator.requestMIDIAccess = JZZ.requestMIDIAccess;
+  JZZ.close = function() { if (_engine._close) _engine._close(); };
+
   return JZZ;
 });
