@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Web Speech</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+<h1>Web Speech</h1>
+<div id=out><p>JavaScript is disabled!</p></div>
+
+<script><!--
+var out = document.getElementById('out');
+var synth = window.speechSynthesis;
+var speaking;
+if (synth) {
+  out.innerHTML = '<p>Web Speech API is available!</p>';
+  speak();
+}
+else {
+  out.innerHTML = '<p>Web Speech API is not available!</p>';
+}
+
+function speak() {
+  if (speaking) return;
+  var voices = synth.getVoices();
+  if (voices.length) {
+    speaking = true;
+    for (var i = 0; i < voices.length; i++) {
+      out.innerHTML += '<p>[' + voices[i].lang + '] ' + voices[i].voiceURI + ' -- ' + voices[i].name + '</p>';
+      var hello = new SpeechSynthesisUtterance('Hello, my name is ' + voices[i].name);
+      hello.voice = voices[i];
+      synth.speak(hello);
+    }
+  }
+  else if (synth.onvoiceschanged !== undefined) {
+    synth.onvoiceschanged = speak;
+  }
+}
+--></script>
+<p>
+<a href=index.html>Back</a>
+</p>
+</body>
+</html>
