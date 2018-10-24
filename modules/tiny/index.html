@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>JZZ.synth.Tiny demo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="../../javascript/JZZ.js"></script>
+<script src="../../javascript/JZZ.synth.Tiny.js"></script>
+<script><!--
+function play() {
+  JZZ.synth.Tiny()
+    .or(function(){ alert('Cannot open MIDI-Out! ' + this.err()); })
+    .ch(0).note('C5', 127, 500).wait(500)
+    .note('E5', 127, 500).wait(500)
+    .note('G5', 127, 500).wait(500)
+    .note('C6', 127, 500).wait(500)
+    .program(16).note('C5', 127, 500).wait(500)
+    .note('E5', 127, 500).wait(500)
+    .note('G5', 127, 500).wait(500)
+    .note('C6', 127, 500).wait(500)
+    .ch(9).note(36, 127).wait(250)
+    .note(36, 127).wait(250)
+    .note(49, 127).wait(500)
+    .note(36, 127).wait(250)
+    .note(36, 127).wait(250)
+    .note(49, 127).wait(500);
+}
+--></script>
+</head>
+
+<body>
+<h1>JZZ.synth.Tiny demo</h1>
+<button onclick='play();'>Press to play!</button>
+<p id=note>
+</p>
+<script><!--
+var ac = window.AudioContext || window.webkitAudioContext;
+if (!ac) document.getElementById('note').innerHTML = 'NOTE: This browser does not support AudioContext.';
+--></script>
+
+<p>
+<a href=../index.html>Back</a>
+</p>
+
+</body>
+</html>

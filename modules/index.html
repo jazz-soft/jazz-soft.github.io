@@ -9,6 +9,7 @@
 <script src="../javascript/JZZ.synth.MIDIjs.js"></script>
 <script src="../javascript/JZZ.synth.Timbre.js"></script>
 <script src="../javascript/JZZ.synth.OSC.js"></script>
+<script src="../javascript/JZZ.synth.Tiny.js"></script>
 <script src="../javascript/qwerty-hancock.js"></script>
 <script src="../javascript/JZZ.input.Qwerty.js"></script>
 <script src="../javascript/JZZ.input.Kbd.js"></script>
@@ -27,6 +28,7 @@ if (typeof T !== 'undefined' && T instanceof Function && T.version) {
   JZZ.synth.Timbre.register(T("OscGen"));
 }
 JZZ.synth.OSC.register();
+JZZ.synth.Tiny.register();
 JZZ.input.Qwerty.register();
 JZZ.input.Kbd.register();
 JZZ.input.ASCII.register();
@@ -57,6 +59,8 @@ JZZ().and(function(){
 <a href=timbre/index.html>JZZ.synth.Timbre</a>
 </p><p>
 <a href=osc/index.html>JZZ.synth.OSC</a>
+</p><p>
+<a href=tiny/index.html>JZZ.synth.Tiny</a>
 </p><p>
 <a href=qwerty/index.html>JZZ.input.Qwerty</a>
 </p><p>
