@@ -9,7 +9,7 @@
 
 <body>
 <h1>JZZ.midi.Gear demo</h1>
-<pre id=out></pre>
+<pre id=out>A moment please...</pre>
 
 <script><!--
 var out = document.getElementById('out');
@@ -26,7 +26,8 @@ function onMidiMsg(msg) {
     out.innerHTML = txt + 'If any of your devices is not identified correctly, please <a href=https://github.com/jazz-soft/JZZ-midi-Gear#updates>let us know</a>!';
   }
 }
-JZZ({sysex:true, engine:['webmidi', 'etc']})
+
+JZZ({ sysex:true })
    .or(function(){ out.innerHTML = 'Cannot start MIDI engine!'; })
    .and(function(){
       out.innerHTML = 'No ID Response SysEx received...';
