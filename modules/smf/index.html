@@ -333,9 +333,9 @@ var data='\
  PI5SQDyeUWR4jlFAAJ5NZDyOTUA8nldkPI5XQDyeVGQ8jlRAPJ5SZIFwjlJAgXCeRmR4jkZAAP8vAA==';
 
 var smf = new JZZ.MIDI.SMF(_fromBase64(data));
-var player = new JZZ.gui.Player('player');
+var player = new JZZ.gui.Player({ at: 'player', file: true });
+player.onLoad = function(smf) { player.play(); }
 player.load(smf);
-player.play();
 --></script>
 
 </body>
