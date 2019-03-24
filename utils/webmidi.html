@@ -14,8 +14,7 @@
 var out = document.getElementById('out');
 var status = "<div>Web MIDI is not supported</div>";
 
-function onGood(midi) {
-  status = "<div>WebMIDI API is available!</p>";
+function listPorts(midi) {
   if (midi.outputs.size) {
     status += "<div>MIDI-Out ports:</div><ul>"
     midi.outputs.forEach(function(port, key) {
@@ -41,14 +40,28 @@ function onGood(midi) {
   out.innerHTML = status;
 }
 
-function onBad() {
+function onSysex(midi) {
+  status = "<div>WebMIDI API (with Sysex support) is available!</p>";
+  listPorts(midi);
+}
+
+function onNoSysex(midi) {
+  status = "<div>WebMIDI API (no Sysex support) is available!</p>";
+  listPorts(midi);
+}
+
+function onFail() {
   status = "<div>Web MIDI is not available!</div>";
   out.innerHTML = status;
 }
 
+function retry() {
+  navigator.requestMIDIAccess({sysex: false, software: true}).then(onNoSysex, onFail);
+}
+
 if (navigator.requestMIDIAccess) {
   status = "<div>WebMIDI API is supported!</div>";
-  navigator.requestMIDIAccess({sysex: true, software: true}).then(onGood, onBad);
+  navigator.requestMIDIAccess({sysex: true, software: true}).then(onSysex, retry);
 }
 
 out.innerHTML = status;
