@@ -13,7 +13,7 @@
 })(this, function() {
 
   var _scope = typeof window === 'undefined' ? global : window;
-  var _version = '0.9.6';
+  var _version = '1.0.2';
   var i, j, k, m, n;
 
   var _time = Date.now || function () { return new Date().getTime(); };
@@ -718,6 +718,7 @@
 
   function _initNONE() {
     _engine._type = 'none';
+    _engine._version = _version;
     _engine._sysex = true;
     _engine._outs = [];
     _engine._ins = [];
@@ -837,7 +838,7 @@
     _engine._closeOut = function(port) {
       var impl = port._impl;
       _pop(impl.clients, port._orig);
-      if (!impl.clients.length) {
+      if (!impl.clients.length && impl.open) {
         impl.open = false;
         impl.plugin.MidiOutClose();
       }
@@ -845,7 +846,7 @@
     _engine._closeIn = function(port) {
       var impl = port._impl;
       _pop(impl.clients, port._orig);
-      if (!impl.clients.length) {
+      if (!impl.clients.length && impl.open) {
         impl.open = false;
         impl.plugin.MidiInClose();
       }
@@ -1141,7 +1142,7 @@
     _engine._closeOut = function(port) {
       var impl = port._impl;
       _pop(impl.clients, port._orig);
-      if (!impl.clients.length) {
+      if (!impl.clients.length && impl.open) {
         impl.open = false;
         document.dispatchEvent(new CustomEvent('jazz-midi', { detail: ['closeout', impl.plugin.id] }));
       }
@@ -1149,7 +1150,7 @@
     _engine._closeIn = function(port) {
       var impl = port._impl;
       _pop(impl.clients, port._orig);
-      if (!impl.clients.length) {
+      if (!impl.clients.length && impl.open) {
         impl.open = false;
         document.dispatchEvent(new CustomEvent('jazz-midi', { detail: ['closein', impl.plugin.id] }));
       }
@@ -2218,11 +2219,13 @@
             osc.start(0.1); osc.stop(0.11);
           }
           else {
+            document.removeEventListener('touchstart', _activateAudioContext);
             document.removeEventListener('touchend', _activateAudioContext);
             document.removeEventListener('mousedown', _activateAudioContext);
             document.removeEventListener('keydown', _activateAudioContext);
           }
         };
+        document.addEventListener('touchstart', _activateAudioContext);
         document.addEventListener('touchend', _activateAudioContext);
         document.addEventListener('mousedown', _activateAudioContext);
         document.addEventListener('keydown', _activateAudioContext);
@@ -2411,8 +2414,10 @@
   }
 
   function _statechange(p, a) {
-    if (p.onstatechange) p.onstatechange(new MIDIConnectionEvent(p, p));
-    if (a.onstatechange) a.onstatechange(new MIDIConnectionEvent(p, a));
+    if (p) {
+      if (p.onstatechange) p.onstatechange(new MIDIConnectionEvent(p, p));
+      if (a.onstatechange) a.onstatechange(new MIDIConnectionEvent(p, a));
+    }
   }
 
   function MIDIInput(a, p) {
@@ -2535,7 +2540,7 @@
           }).and(function() {
             self.proxy = this;
             self.proxy.connect(self.onmidi);
-            for (i = 0; i < self.pending; i++) self.pending[i][0]();
+            for (i = 0; i < self.pending.length; i++) self.pending[i][0]();
             self.pending = [];
           });
         }

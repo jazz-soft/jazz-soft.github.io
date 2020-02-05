@@ -347,6 +347,11 @@
   };
   Player.prototype.onPlay = function() {};
   Player.prototype.onResume = function() {};
+  Player.prototype._resume = function() {
+    var self = this;
+    this._player.resume();
+    this._moving = setInterval(function() { self._move(); }, 100);
+  };
   Player.prototype.play = function() {
     if (this._player) {
       var self = this;
@@ -358,8 +363,7 @@
       this._playing = true;
       this._paused = false;
       if (this._out || !this._conn) {
-        this._player.resume();
-        this._moving = setInterval(function() { self._move(); }, 100);
+        this._resume();
       }
       else if (!this._waiting) {
         this._waiting = true;
@@ -370,9 +374,11 @@
           self._connect(this);
           self._waiting = false;
           if (self._playing) {
-            self._player.resume();
-            self._moving = setInterval(function() { self._move(); }, 100);
+            self._resume();
           }
+        }).or(function() {
+          self._waiting = false;
+          self._resume();
         });
       }
     }
@@ -394,13 +400,11 @@
   Player.prototype.onPause = function() {};
   Player.prototype.pause = function(p) {
     if (this._player) {
-      var self = this;
       if (this._paused) {
         if (typeof p == 'undefined' || p) {
           if (this._out) {
-            this._player.resume();
+            this._resume();
             this.onResume();
-            this._moving = setInterval(function() { self._move(); }, 100);
             this._playing = true;
             this._paused = false;
             this.playBtn.on();
