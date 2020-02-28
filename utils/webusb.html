@@ -24,7 +24,7 @@ function found(devices) {
 
 if (navigator.usb && navigator.usb.getDevices) {
   status = "<div>Web USB is supported!</div>";
-  navigator.usb.getDevices().then(found);
+  navigator.usb.getDevices().then(function(devices) { console.log('USB found:', devices); })
 }
 
 out.innerHTML = status;
