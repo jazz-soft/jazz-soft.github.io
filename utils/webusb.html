@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Web USB</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<h1>Web USB</h1>
+
+<div id=out><div>JavaScript is disabled</div></div>
+
+<script><!--
+var out = document.getElementById('out');
+var status = "<div>Web USB is not supported</div>";
+
+function found(devices) {
+  devices.forEach(function(device) {
+    console.log('USB:', device);
+  });
+}
+
+if (navigator.usb && navigator.usb.getDevices) {
+  status = "<div>Web USB is supported!</div>";
+  navigator.usb.getDevices().then(found, fail);
+}
+
+out.innerHTML = status;
+--></script>
+
+<p>
+<a href=index.html>Back</a>
+</p>
+
+</body>
+</html>
