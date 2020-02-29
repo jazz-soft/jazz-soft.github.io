@@ -15,9 +15,10 @@ var out = document.getElementById('out');
 var status = "<div>Web USB is not supported</div>";
 
 function found(devices) {
-  status += '<div>Devices found: ' + devices.length + '</div>';
+  status += '<p>Devices found: ' + devices.length + '</p>';
   devices.forEach(function(device) {
-    console.log("Product name: " + device.productName + ", serial number " + device.serialNumber);
+    status += '<div>Product name: ' + device.productName + ', serial number ' + device.serialNumber + '</div>';
+    console.log('USB:', device);
   });
   out.innerHTML = status;
 }
