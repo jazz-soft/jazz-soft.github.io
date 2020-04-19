@@ -1,38 +1,53 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Web XR</title>
+<title>Web VR/XR</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
 
-<h1>Web XR</h1>
+<h1>Web VR/XR</h1>
 
 <div id=out>JavaScript is disabled</div>
 
 <script><!--
 var out = document.getElementById('out');
-var log = [];
-function print(msg) {
+var logV = [];
+var logX = [];
+
+function print(log, msg) {
   log.push(msg);
-  out.innerHTML = log.join('<br>');
+  out.innerHTML = logV.concat(logX).join('<br>');
 }
-function printer(msg) { return function() { print(msg); }; }
+function printX(msg) { return function() { print(logX, msg); }; }
 function testmode(mode) {
   navigator.xr.isSessionSupported(mode).then(
-    printer(mode + ' mode is supported'), 
-    printer(mode + ' mode is not supported'), 
+    printX('&nbsp; ' + mode + ' mode is supported'), 
+    printX('&nbsp; ' + mode + ' mode is not supported'), 
   );
 }
 
+if (navigator.getVRDisplays) {
+  print(logV, 'Web VR is supported');
+  navigator.getVRDisplays().then(function(displays) {
+    for (var i = 0; i < displays.length; i++) {
+      print(logV, '&nbsp; ' + displays[i].displayName);
+    }
+    print(logV, '&nbsp; ' + displays.length + ' displays found');
+  });
+}
+else {
+  print(logV, 'Web VR is not supported');
+}
+
 if (navigator.xr) {
-  print("Web XR is supported");
+  print(logX, 'Web XR is supported');
   testmode('immersive-vr');
   testmode('immersive-ar');
   testmode('inline');
 }
 else {
-  print("Web XR is not supported");
+  print(logX, 'Web XR is not supported');
 }
 --></script>
 
