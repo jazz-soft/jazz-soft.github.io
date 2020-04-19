@@ -6,15 +6,17 @@
 </head>
 <body>
 <h1>Web Speech</h1>
+<button id=button onclick='speak();' disabled>speak</button>
 <div id=out><p>JavaScript is disabled!</p></div>
 
 <script><!--
 var out = document.getElementById('out');
+var button = document.getElementById('button');
 var synth = window.speechSynthesis;
 var speaking;
 if (synth) {
   out.innerHTML = '<p>Web Speech API is available!</p>';
-  speak();
+  button.disabled = false;
 }
 else {
   out.innerHTML = '<p>Web Speech API is not available!</p>';

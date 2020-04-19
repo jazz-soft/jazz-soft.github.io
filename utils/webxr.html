@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Web XR</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<h1>Web XR</h1>
+
+<div id=out>JavaScript is disabled</div>
+
+<script><!--
+var out = document.getElementById('out');
+var log = [];
+function print(msg) {
+  log.push(msg);
+  out.innerHTML = log.join('<br>');
+}
+function printer(msg) { return function() { print(msg); }; }
+function testmode(mode) {
+  navigator.xr.isSessionSupported(mode).then(
+    printer(mode + ' mode is supported'), 
+    printer(mode + ' mode is not supported'), 
+  );
+}
+
+if (navigator.xr) {
+  print("Web XR is supported");
+  testmode('immersive-vr');
+  testmode('immersive-ar');
+  testmode('inline');
+}
+else {
+  print("Web XR is not supported");
+}
+--></script>
+
+<p>
+<a href=index.html>Back</a>
+</p>
+
+</body>
+</html>
