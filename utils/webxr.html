@@ -19,12 +19,11 @@ function print(log, msg) {
   log.push(msg);
   out.innerHTML = logV.concat(logX).join('<br>');
 }
-function printX(msg) { return function() { print(logX, msg); }; }
+
 function testmode(mode) {
-  navigator.xr.isSessionSupported(mode).then(
-    printX('&nbsp; ' + mode + ' mode is supported'), 
-    printX('&nbsp; ' + mode + ' mode is not supported'), 
-  );
+  navigator.xr.isSessionSupported(mode).then(function(result) {
+    print(logX, '&nbsp; ' + mode + (result ? ': YES' : ': NO'));
+  });
 }
 
 if (navigator.getVRDisplays) {
