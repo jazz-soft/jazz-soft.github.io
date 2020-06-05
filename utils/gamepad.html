@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Gamepad Events</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+<h1>Gamepad Events</h1>
+<pre id=log>
+No gamepad devices detected.
+</pre>
+
+<script><!--
+var log = document.getElementById('log');
+var out = [];
+function print(str) {
+ out.push(str);
+ if  (out.length > 24) out.splice(0,1);
+ log.innerHTML = out.join('\n');
+}
+
+if (typeof navigator.getGamepads == 'undefined') print('This browser does not support gamepad devices.');
+else {
+  var gamepads = navigator.getGamepads();
+  print('Gamepads detected: ' + gamepads.length);
+  for (var i = 0; i < gamepads.length; i++) {
+print(i + ': ' + gamepads[i]);
+  }
+}
+
+window.addEventListener("gamepadconnected", function(e) {
+ print("Gamepad connected. index: " + e.gamepad.index + ", id: " + e.gamepad.id + ", buttons: " + e.gamepad.buttons.length + ", axes: " + e.gamepad.axes.length);
+});
+
+window.addEventListener("gamepaddisconnected", function(e) {
+ print("Gamepad disconnected. index: " + e.gamepad.index + ", id: " + e.gamepad.id);
+});
+
+--></script>
+<p>
+<a href=index.html>Back</a>
+</p>
+</body>
+</html>
