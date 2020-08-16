@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Music Staff</title>
+<style type="text/css">
+#staff {display:inline-block; width:560px; height:420px; position:relative;}
+#staff div {display:inline-block; position:absolute;}
+#clef {left:0; top:0; margin:0; padding:0;}
+#l0, #l1, #l2, #l3, #l4, #l5, #l6{background-color:#000; height:4px; width:960px; left:0;}
+#l0 {top:234px; left:98px; width:68px;}
+#l1 {top:198px;}
+#l2 {top:162px;}
+#l3 {top:126px;}
+#l4 {top:90px;}
+#l5 {top:54px;}
+#l6 {top:18px; left:866px; width:68px;}
+#c, #d, #e, #f, #g, #a, #b, #cc, #dd, #ee, #ff, #gg, #aa {height:32px; width:48px; border-style:solid; border-width:4px; border-radius:50%; text-align:center;}
+#c {top:216px; left:105px;}
+#d {top:198px; left:169px;}
+#e {top:180px; left:233px;}
+#f {top:162px; left:297px;}
+#g {top:144px; left:361px;}
+#a {top:126px; left:425px;}
+#b {top:108px; left:489px;}
+#cc {top:90px; left:553px;}
+#dd {top:72px; left:617px;}
+#ee {top:54px; left:681px;}
+#ff {top:36px; left:745px;}
+#gg {top:18px; left:809px;}
+#aa {top:0px; left:873px;}
+#piano {left:100px; top:264px;}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/jzz"></script>
+<script src="https://cdn.jsdelivr.net/npm/jzz-synth-tiny"></script>
+<script src="https://cdn.jsdelivr.net/npm/jzz-input-kbd"></script>
+</head>
+
+<body>
+<div id=staff>
+ <div id=clef>
+<svg height="245" width="116" viewBox="0 0 232 490" stroke="#000" stroke-width="10" fill="none">
+<path d="m 131,334 c -32,-21 -45,-36 -20,-58 27,-24 70,-26 96,0 26,26 28,66 -8,96 -36,29 -96,33 -128,17 -32,-15 -56,-49 -42,-89 23,-68 95,-70 154,-142 49,-59 52,-170 1,-149 -51,21 -30,412 -104,461 -40,27 -59,13 -76,-11" />
+</svg>
+ </div>
+ <div id=l0></div><div id=l1></div><div id=l2></div><div id=l3></div><div id=l4></div><div id=l5></div><div id=l6></div>
+ <div id=c>C</div><div id=d>D</div><div id=e>E</div><div id=f>F</div><div id=g>G</div><div id=a>A</div><div id=b>B</div>
+ <div id=cc>C</div><div id=dd>D</div><div id=ee>E</div><div id=ff>F</div><div id=gg>G</div><div id=aa>A</div>
+ <div id=piano></div>
+</div>
+
+<p><a href=https://jazz-soft.net>https://jazz-soft.net</a></p>
+
+<script><!--
+JZZ.synth.Tiny.register();
+var out = JZZ().openMidiOut();
+
+var staff = JZZ.input.Kbd({keys:[
+  ['c', 'c5'], ['d', 'd5'], ['e', 'e5'], ['f', 'f5'], ['g', 'g5'], ['a', 'a5'], ['b', 'b5'],
+  ['cc', 'c6'], ['dd', 'd6'], ['ee', 'e6'], ['ff', 'f6'], ['gg', 'g6'], ['aa', 'a6']
+], onCreate:function(){
+  this.getKeys().setStyle({backgroundColor:'rgba(255,255,255,0.3)'}, {backgroundColor:'rgba(0,0,0,0.3)'});
+}}).or(function(){ alert('Cannot open MIDI In!\n' + this.err()); });
+
+var piano = JZZ.input.Kbd({at:'piano', from:'C5', to:'A6', ww:64, bw:36})
+   .or(function(){ alert('Cannot open MIDI In!\n' + this.err()); });
+
+piano.connect(staff).connect(out);
+staff.connect(piano); // circular connection is ok!
+--></script>
+
+</body>
+</html>
