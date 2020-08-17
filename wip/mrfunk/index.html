@@ -28,11 +28,13 @@
 #ff {top:36px; left:745px;}
 #gg {top:18px; left:809px;}
 #aa {top:0px; left:873px;}
+#contr {display:inline-block; position:absolute; width:932px; top:236px; text-align:right;}
 #piano {left:100px; top:264px;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/jzz"></script>
 <script src="https://cdn.jsdelivr.net/npm/jzz-synth-tiny"></script>
 <script src="https://cdn.jsdelivr.net/npm/jzz-input-kbd"></script>
+<script src="https://cdn.jsdelivr.net/npm/jzz-midi-gm"></script>
 </head>
 
 <body>
@@ -45,14 +47,29 @@
  <div id=l0></div><div id=l1></div><div id=l2></div><div id=l3></div><div id=l4></div><div id=l5></div><div id=l6></div>
  <div id=c>C</div><div id=d>D</div><div id=e>E</div><div id=f>F</div><div id=g>G</div><div id=a>A</div><div id=b>B</div>
  <div id=cc>C</div><div id=dd>D</div><div id=ee>E</div><div id=ff>F</div><div id=gg>G</div><div id=aa>A</div>
+ <div id=contr>
+MIDI In: <select id=selmidiin></select> &nbsp;
+MIDI Out: <select id=selmidiout></select> &nbsp;
+Program: <select id=selprogram></select>
+ </div>
  <div id=piano></div>
 </div>
 
 <p><a href=https://jazz-soft.net>https://jazz-soft.net</a></p>
 
 <script><!--
+var i;
+var selmidiin = document.getElementById('selmidiin');
+var selmidiout = document.getElementById('selmidiout');
+var selprogram = document.getElementById('selprogram');
+
 JZZ.synth.Tiny.register();
 var out = JZZ().openMidiOut();
+
+for (i = 0; i < 128; i++) {
+  selprogram[i] = new Option(JZZ.MIDI.programName(i));
+}
+
 
 var staff = JZZ.input.Kbd({keys:[
   ['c', 'c5'], ['d', 'd5'], ['e', 'e5'], ['f', 'f5'], ['g', 'g5'], ['a', 'a5'], ['b', 'b5'],
