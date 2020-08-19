@@ -31,6 +31,7 @@
 #contr {display:inline-block; position:absolute; width:932px; top:236px; text-align:right;}
 #piano {left:100px; top:264px;}
 .inner {position:absolute; bottom:5px; left:0; width:100%; text-align:center;}
+.label {background-color:#fff; opacity:0.7; border-radius:50%; position:absolute; left:12px; top:4px;display:inline-block; font-size:24px; width:24px; height:24px; line-height:24px;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/jzz"></script>
 <script src="https://cdn.jsdelivr.net/npm/jzz-synth-tiny"></script>
@@ -49,8 +50,19 @@
 </svg>
  </div>
  <div id=l0></div><div id=l1></div><div id=l2></div><div id=l3></div><div id=l4></div><div id=l5></div><div id=l6></div>
- <div id=c>C</div><div id=d>D</div><div id=e>E</div><div id=f>F</div><div id=g>G</div><div id=a>A</div><div id=b>B</div>
- <div id=cc>C</div><div id=dd>D</div><div id=ee>E</div><div id=ff>F</div><div id=gg>G</div><div id=aa>A</div>
+ <div id=c><span class=label>C</span></div>
+ <div id=d><span class=label>D</span></div>
+ <div id=e><span class=label>E</span></div>
+ <div id=f><span class=label>F</span></div>
+ <div id=g><span class=label>G</span></div>
+ <div id=a><span class=label>A</span></div>
+ <div id=b><span class=label>B</span></div>
+ <div id=cc><span class=label>C</span></div>
+ <div id=dd><span class=label>D</span></div>
+ <div id=ee><span class=label>E</span></div>
+ <div id=ff><span class=label>F</span></div>
+ <div id=gg><span class=label>G</span></div>
+ <div id=aa><span class=label>A</span></div>
  <div id=piano></div>
 </div>
 
@@ -65,6 +77,10 @@ var currentmidiin;
 var selmidiin = document.getElementById('selmidiin');
 var selmidiout = document.getElementById('selmidiout');
 var selprogram = document.getElementById('selprogram');
+var staff = document.getElementById('staff');
+staff.ondragstart = returnfalse;
+staff.onselectstart = returnfalse;
+
 
 JZZ.synth.Tiny.register('Web Audio');
 JZZ().or(function() { alert('Cannot start MIDI'); }).and(function() {
@@ -175,6 +191,7 @@ function populate(lb, list, current) {
   }
 }
 
+function returnfalse() { return false; }
 --></script>
 
 </body>
