@@ -30,8 +30,8 @@
 #aa {top:0px; left:873px;}
 #contr {display:inline-block; position:absolute; width:932px; top:236px; text-align:right;}
 #piano {left:100px; top:264px;}
-.inner {position:absolute; bottom:5px; left:0; width:100%; text-align:center;}
-.label {background-color:#fff; opacity:0.7; border-radius:50%; position:absolute; left:12px; top:4px;display:inline-block; font-size:24px; width:24px; height:24px; line-height:24px;}
+.inner {position:absolute; bottom:5px; left:0; width:100%; text-align:center; visibility:hidden;}
+.label {background-color:#fff; opacity:0.7; border-radius:50%; position:absolute; left:12px; top:4px;display:inline-block; font-size:24px; width:24px; height:24px; line-height:24px; visibility:hidden;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/jzz"></script>
 <script src="https://cdn.jsdelivr.net/npm/jzz-synth-tiny"></script>
@@ -42,7 +42,9 @@
 <body>
 <div id=staff>
  <div id=contr>
-  MIDI In: <select id=selmidiin></select> &nbsp; MIDI Out: <select id=selmidiout></select> &nbsp; Program: <select id=selprogram></select>
+  <label for=selmidiin>MIDI In:</label><select id=selmidiin></select> &nbsp;
+  <label for=selmidiout>MIDI Out:</label><select id=selmidiout></select> &nbsp;
+  <label for=selprogram>Program:</label><select id=selprogram></select>
  </div>
  <div id=clef>
 <svg height="245" width="116" viewBox="0 0 232 490" stroke="#000" stroke-width="10" fill="none">
@@ -66,6 +68,10 @@
  <div id=piano></div>
 </div>
 
+<p>
+ <input type=checkbox id=abc><label for=abc>Note labels</label>
+ <input type=checkbox id=qwe><label for=qwe>Keyboard labels</label>
+</p>
 <p><a href=https://jazz-soft.net>https://jazz-soft.net</a></p>
 
 <script><!--
@@ -77,6 +83,8 @@ var currentmidiin;
 var selmidiin = document.getElementById('selmidiin');
 var selmidiout = document.getElementById('selmidiout');
 var selprogram = document.getElementById('selprogram');
+var abc = document.getElementById('abc');
+var qwe = document.getElementById('qwe');
 var staff = document.getElementById('staff');
 staff.ondragstart = returnfalse;
 staff.onselectstart = returnfalse;
@@ -135,6 +143,9 @@ JZZ.input.ASCII({
 piano.connect(staff);
 staff.connect(piano);
 
+updateabc();
+updateqwe();
+
 selprogram.addEventListener('change', function() {
   currentprogram = selprogram.options[selprogram.selectedIndex].value;
   piano.program(0, currentprogram);
@@ -151,6 +162,9 @@ selmidiin.addEventListener('change', function() {
   if (name != currentmidiin)
   JZZ().openMidiIn(name).or(midiinfail).and(midiinok);
 });
+
+abc.addEventListener('change', updateabc);
+qwe.addEventListener('change', updateqwe);
 
 function midioutok() {
   if (midiout) {
@@ -189,6 +203,16 @@ function populate(lb, list, current) {
   if (!i) {
     lb[i] = new Option('=== NONE ===');
   }
+}
+
+function updateabc() {
+  var all = document.querySelectorAll('.label');
+  for(var i = 0; i < all.length; i++) all[i].style.visibility = abc.checked ? 'visible' : 'hidden';
+}
+
+function updateqwe() {
+  var all = document.querySelectorAll('.inner');
+  for(var i = 0; i < all.length; i++) all[i].style.visibility = qwe.checked ? 'visible' : 'hidden';
 }
 
 function returnfalse() { return false; }
