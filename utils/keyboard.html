@@ -23,16 +23,16 @@ function print(str) {
  input.innerHTML = out.join('\n');
 }
 function onDown(e) {
- var str = ['Key Down', 'charCode', e.charCode, 'keyCode', e.keyCode, 'ctrlKey', e.ctrlKey, 'shiftKey', e.shiftKey, 'altKey', e.altKey, 'metaKey', e.metaKey].join(' ');
+ var str = ['Key Down', 'key', e.key, 'code', e.code, 'charCode', e.charCode, 'keyCode', e.keyCode, 'ctrlKey', e.ctrlKey, 'shiftKey', e.shiftKey, 'altKey', e.altKey, 'metaKey', e.metaKey].join(' ');
  print(str);
 }
 function onKeypress(e) {
- var str = ['Key Press', 'charCode', e.charCode, 'keyCode', e.keyCode, 'ctrlKey', e.ctrlKey, 'shiftKey', e.shiftKey, 'altKey', e.altKey, 'metaKey', e.metaKey].join(' ');
+ var str = ['Key Press', 'key', e.key, 'code', e.code, 'charCode', e.charCode, 'keyCode', e.keyCode, 'ctrlKey', e.ctrlKey, 'shiftKey', e.shiftKey, 'altKey', e.altKey, 'metaKey', e.metaKey].join(' ');
  e.preventDefault();
  print(str);
 }
 function onKeyup(e) {
- var str = ['Key Up', 'charCode', e.charCode, 'keyCode', e.keyCode, 'ctrlKey', e.ctrlKey, 'shiftKey', e.shiftKey, 'altKey', e.altKey, 'metaKey', e.metaKey].join(' ');
+ var str = ['Key Up', 'key', e.key, 'code', e.code, 'charCode', e.charCode, 'keyCode', e.keyCode, 'ctrlKey', e.ctrlKey, 'shiftKey', e.shiftKey, 'altKey', e.altKey, 'metaKey', e.metaKey].join(' ');
  print(str);
 }
 input.addEventListener("keydown", onDown, false);
