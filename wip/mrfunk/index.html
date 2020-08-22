@@ -89,20 +89,16 @@ var staff = document.getElementById('staff');
 staff.ondragstart = returnfalse;
 staff.onselectstart = returnfalse;
 
-
-JZZ.synth.Tiny.register('Web Audio');
-JZZ().or(function() { alert('Cannot start MIDI'); }).and(function() {
-  var info = this.info();
-  populate(selmidiout, info.outputs);
-  populate(selmidiin, info.inputs);
-  JZZ().openMidiOut().and(midioutok);
-  JZZ().openMidiIn().and(midiinok);
-});
-
 for (i = 0; i < 128; i++) {
   selprogram[i] = new Option(JZZ.MIDI.programName(i), i);
 }
 
+JZZ.synth.Tiny.register('Web Audio');
+JZZ().or(function() { alert('Cannot start MIDI'); }).and(function() {
+  updatemidiout();
+  updatemidiin();
+  JZZ().openMidiOut('Web Audio').and(midioutok);
+});
 
 var staff = JZZ.input.Kbd({keys:[
   ['c', 'c5'], ['d', 'd5'], ['e', 'e5'], ['f', 'f5'], ['g', 'g5'], ['a', 'a5'], ['b', 'b5'],
@@ -134,6 +130,7 @@ var piano = JZZ.input.Kbd({ at:'piano', from:'C5', to:'A6', ww:64, bw:36, onCrea
   this.getKey('C#6').setInnerHTML('<span class=inner>9</span>');
   this.getKey('D#6').setInnerHTML('<span class=inner>0</span>');
   this.getKey('F#6').setInnerHTML('<span class=inner>+</span>');
+  this.getKey('G#6').setInnerHTML('<span class=inner>&#x232B;</span>');
 } });
 JZZ.input.ASCII({
   Q:'C5', 2:'C#5', W:'D5', 3:'D#5', E:'E5', R:'F5', 5:'F#5', T:'G5', 6:'Ab5', Y:'A5', 7:'Bb5', U:'B5',
@@ -153,14 +150,16 @@ selprogram.addEventListener('change', function() {
 
 selmidiout.addEventListener('change', function() {
   var name = selmidiout.options[selmidiout.selectedIndex].value;
-  if (name != currentmidiout)
-  JZZ().openMidiOut(name).or(midioutfail).and(midioutok);
+  if (name != currentmidiout) {
+    JZZ().openMidiOut(name).or(midioutfail).and(midioutok);
+  }
 });
 
 selmidiin.addEventListener('change', function() {
   var name = selmidiin.options[selmidiin.selectedIndex].value;
-  if (name != currentmidiin)
-  JZZ().openMidiIn(name).or(midiinfail).and(midiinok);
+  if (name != currentmidiin) {
+    JZZ().openMidiIn(name).or(midiinfail).and(midiinok);
+  }
 });
 
 abc.addEventListener('change', updateabc);
@@ -175,6 +174,7 @@ function midioutok() {
   currentmidiout = midiout.name();
   piano.connect(midiout);
   piano.program(0, currentprogram);
+  updatemidiout();
 }
 
 function midiinok() {
@@ -185,23 +185,31 @@ function midiinok() {
   midiin = this;
   currentmidiin = midiin.name();
   midiin.connect(piano);
+  updatemidiin();
 }
 
 function midioutfail() {
-  console.log(currentmidiout);
+  updatemidiout();
 }
 
 function midiinfail() {
-  console.log(currentmidiin);
+  updatemidiin();
 }
 
-function populate(lb, list, current) {
-  var i;
-  for (i = 0; i < list.length; i++) {
-    lb[i] = new Option(list[i].name, list[i].name, list[i].name == current);
+function updatemidiout() {
+  var list = JZZ().info().outputs;
+  selmidiout.innerHTML = '';
+  for (var i = 0; i < list.length; i++) {
+    selmidiout[i] = new Option(list[i].name, list[i].name, list[i].name == currentmidiout, list[i].name == currentmidiout);
   }
-  if (!i) {
-    lb[i] = new Option('=== NONE ===');
+}
+
+function updatemidiin() {
+  var list = JZZ().info().inputs;
+  selmidiin.innerHTML = '';
+  selmidiin[0] = new Option('=== NONE ===');
+  for (var i = 0; i < list.length; i++) {
+    selmidiin[i + 1] = new Option(list[i].name, list[i].name, list[i].name == currentmidiin, list[i].name == currentmidiin);
   }
 }
 
