@@ -80,6 +80,7 @@ var midiout, midiin;
 var currentprogram = 0;
 var currentmidiout;
 var currentmidiin;
+var none = '=== NONE ===';
 var selmidiin = document.getElementById('selmidiin');
 var selmidiout = document.getElementById('selmidiout');
 var selprogram = document.getElementById('selprogram');
@@ -157,7 +158,14 @@ selmidiout.addEventListener('change', function() {
 
 selmidiin.addEventListener('change', function() {
   var name = selmidiin.options[selmidiin.selectedIndex].value;
-  if (name != currentmidiin) {
+  if (name == none) {
+    if (midiin) {
+      midiin.disconnect(piano);
+      midiin.close();
+    }
+    midiin = undefined;
+  }
+  else if (name != currentmidiin) {
     JZZ().openMidiIn(name).or(midiinfail).and(midiinok);
   }
 });
@@ -207,7 +215,7 @@ function updatemidiout() {
 function updatemidiin() {
   var list = JZZ().info().inputs;
   selmidiin.innerHTML = '';
-  selmidiin[0] = new Option('=== NONE ===');
+  selmidiin[0] = new Option(none);
   for (var i = 0; i < list.length; i++) {
     selmidiin[i + 1] = new Option(list[i].name, list[i].name, list[i].name == currentmidiin, list[i].name == currentmidiin);
   }
