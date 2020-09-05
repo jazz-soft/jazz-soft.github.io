@@ -2,6 +2,9 @@
 <html>
 <head>
 <title>Music Staff</title>
+<meta property="og:image" content="staff-1200-630.png" />
+<meta property="og:title" content="Music Staff" />
+<meta property="og:description" content="Interactive Music Staff" />
 <style type="text/css">
 #staff {display:inline-block; width:560px; height:420px; position:relative;}
 #staff div {display:inline-block; position:absolute;}
@@ -44,7 +47,7 @@
  <div id=contr>
   <label for=selmidiin>MIDI In:</label><select id=selmidiin></select> &nbsp;
   <label for=selmidiout>MIDI Out:</label><select id=selmidiout></select> &nbsp;
-  <label for=selprogram>Program:</label><select id=selprogram></select>
+  <label for=selprogram>Sound:</label><select id=selprogram></select>
  </div>
  <div id=clef>
 <svg height="245" width="116" viewBox="0 0 232 490" stroke="#000" stroke-width="10" fill="none">
@@ -101,43 +104,35 @@ JZZ().or(function() { alert('Cannot start MIDI'); }).and(function() {
   JZZ().openMidiOut('Web Audio').and(midioutok);
 });
 
+var filter = JZZ.Widget();
+filter.mute = {};
+filter._receive = function(msg) { if (!this.mute[msg.getNote()]) this._emit(msg); };
+filter.disable = function(n) { this.mute[n] = true; };
+filter.enable = function(n) { this.mute[n] = false; };
+
 var staff = JZZ.input.Kbd({keys:[
   ['c', 'c5'], ['d', 'd5'], ['e', 'e5'], ['f', 'f5'], ['g', 'g5'], ['a', 'a5'], ['b', 'b5'],
   ['cc', 'c6'], ['dd', 'd6'], ['ee', 'e6'], ['ff', 'f6'], ['gg', 'g6'], ['aa', 'a6']
 ], onCreate:function(){
-  this.getKeys().setStyle({backgroundColor:'rgba(255,255,255,0.3)'}, {backgroundColor:'rgba(0,0,0,0.3)'});
+  this.getKeys().setStyle({backgroundColor:'rgba(255,255,255,0.3)'}, {backgroundColor:'rgba(0,0,0,0.3)'}, {backgroundColor:'rgba(180,180,180,0.3)'});
 }}).or(function(){ alert('Cannot open MIDI In!\n' + this.err()); });
 
+var labels = ['Q', '2', 'W', '3', 'E', 'R', '5', 'T', '6', 'Y', '7', 'U', 'I', '9', 'O', '0', 'P', '[', '+', ']', '&#x232B;', '\\'];
+
 var piano = JZZ.input.Kbd({ at:'piano', from:'C5', to:'A6', ww:64, bw:36, onCreate: function() {
+  var i;
   this.getBlackKeys().setStyle({color:'#fff'});
-  this.getKey('C5').setInnerHTML('<span class=inner>Q</span>');
-  this.getKey('D5').setInnerHTML('<span class=inner>W</span>');
-  this.getKey('E5').setInnerHTML('<span class=inner>E</span>');
-  this.getKey('F5').setInnerHTML('<span class=inner>R</span>');
-  this.getKey('G5').setInnerHTML('<span class=inner>T</span>');
-  this.getKey('A5').setInnerHTML('<span class=inner>Y</span>');
-  this.getKey('B5').setInnerHTML('<span class=inner>U</span>');
-  this.getKey('C6').setInnerHTML('<span class=inner>I</span>');
-  this.getKey('D6').setInnerHTML('<span class=inner>O</span>');
-  this.getKey('E6').setInnerHTML('<span class=inner>P</span>');
-  this.getKey('F6').setInnerHTML('<span class=inner>[</span>');
-  this.getKey('G6').setInnerHTML('<span class=inner>]</span>');
-  this.getKey('A6').setInnerHTML('<span class=inner>\\</span>');
-  this.getKey('C#5').setInnerHTML('<span class=inner>2</span>');
-  this.getKey('D#5').setInnerHTML('<span class=inner>3</span>');
-  this.getKey('F#5').setInnerHTML('<span class=inner>5</span>');
-  this.getKey('G#5').setInnerHTML('<span class=inner>6</span>');
-  this.getKey('A#5').setInnerHTML('<span class=inner>7</span>');
-  this.getKey('C#6').setInnerHTML('<span class=inner>9</span>');
-  this.getKey('D#6').setInnerHTML('<span class=inner>0</span>');
-  this.getKey('F#6').setInnerHTML('<span class=inner>+</span>');
-  this.getKey('G#6').setInnerHTML('<span class=inner>&#x232B;</span>');
+  this.getKeys().setStyle({}, {}, {backgroundColor: '#e8e8e8'});
+  for (i = 0; i < labels.length; i++) {
+    this.getKey(i + 60).setInnerHTML('<span class=inner>' + labels[i] + '</span>');
+  }
 } });
 JZZ.input.ASCII({
   Q:'C5', 2:'C#5', W:'D5', 3:'D#5', E:'E5', R:'F5', 5:'F#5', T:'G5', 6:'Ab5', Y:'A5', 7:'Bb5', U:'B5',
   I:'C6', 9:'C#6', O:'D6', 0:'D#6', P:'E6', '[':'F6', '+':'F#6', ']':'G6', 'bsp':'Ab6', '|':'A6'
-}).connect(piano);
+}).connect(filter);
 
+filter.connect(piano);
 piano.connect(staff);
 staff.connect(piano);
 
@@ -187,12 +182,12 @@ function midioutok() {
 
 function midiinok() {
   if (midiin) {
-    midiin.disconnect(piano);
+    midiin.disconnect(filter);
     midiin.close();
   }
   midiin = this;
   currentmidiin = midiin.name();
-  midiin.connect(piano);
+  midiin.connect(filter);
   updatemidiin();
 }
 
@@ -232,6 +227,18 @@ function updateqwe() {
 }
 
 function returnfalse() { return false; }
+
+function disable(n) {
+  filter.disable(n);
+  piano.getKey(n).disable();
+  staff.getKey(n).disable();
+}
+
+function enable(n) {
+  filter.enable(n);
+  piano.getKey(n).enable();
+  staff.getKey(n).enable();
+}
 --></script>
 
 </body>
