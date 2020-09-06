@@ -34,6 +34,7 @@
 #contr {display:inline-block; position:absolute; width:932px; top:236px; text-align:right;}
 #piano {left:100px; top:264px;}
 .inner {position:absolute; bottom:5px; left:0; width:100%; text-align:center; visibility:hidden;}
+.ckbox {position:absolute; bottom:5px; left:0; width:100%; text-align:center; visibility:hidden;}
 .label {background-color:#fff; opacity:0.7; border-radius:50%; position:absolute; left:12px; top:4px;display:inline-block; font-size:24px; width:24px; height:24px; line-height:24px; visibility:hidden;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/jzz"></script>
@@ -74,6 +75,7 @@
 <p>
  <input type=checkbox id=abc><label for=abc>Note labels</label>
  <input type=checkbox id=qwe><label for=qwe>Keyboard labels</label>
+ <input type=checkbox id=off><label for=off>On/Off controls</label>
 </p>
 <p><a href=https://jazz-soft.net>https://jazz-soft.net</a></p>
 
@@ -167,6 +169,7 @@ selmidiin.addEventListener('change', function() {
 
 abc.addEventListener('change', updateabc);
 qwe.addEventListener('change', updateqwe);
+off.addEventListener('change', updateoff);
 
 function midioutok() {
   if (midiout) {
@@ -224,6 +227,11 @@ function updateabc() {
 function updateqwe() {
   var all = document.querySelectorAll('.inner');
   for(var i = 0; i < all.length; i++) all[i].style.visibility = qwe.checked ? 'visible' : 'hidden';
+}
+
+function updateoff() {
+  var all = document.querySelectorAll('.ckbox');
+  for(var i = 0; i < all.length; i++) all[i].style.visibility = off.checked ? 'visible' : 'hidden';
 }
 
 function returnfalse() { return false; }
