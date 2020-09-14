@@ -83,7 +83,22 @@
 </p>
 
 <script><!--
-var i;
+var i, j;
+var param = { disable: {} };
+var a = window.location.href.split('?');
+var url = a[0];
+var query = a[1];
+if (query) {
+  query = query.split('#')[0];
+  query = query ? query.split('&') : [];
+  for (i = 0; i < query.length; i++) {
+    a = query[i].split('=');
+    if (a[0] == 'disable') {
+      a = a[1].split(',');
+      for (j = 0; j < a.length; j++) param.disable[a[j]] = true;
+    }
+  }
+}
 var midiout, midiin;
 var currentprogram = 0;
 var currentmidiout;
@@ -94,6 +109,7 @@ var selmidiout = document.getElementById('selmidiout');
 var selprogram = document.getElementById('selprogram');
 var abc = document.getElementById('abc');
 var qwe = document.getElementById('qwe');
+var off = document.getElementById('off');
 var staff = document.getElementById('staff');
 staff.ondragstart = returnfalse;
 staff.onselectstart = returnfalse;
@@ -109,11 +125,9 @@ JZZ().or(function() { alert('Cannot start MIDI'); }).and(function() {
   JZZ().openMidiOut('Web Audio').and(midioutok);
 });
 
+var mute = {};
 var filter = JZZ.Widget();
-filter.mute = {};
-filter._receive = function(msg) { if (!this.mute[msg.getNote()]) this._emit(msg); };
-filter.disable = function(n) { this.mute[n] = true; };
-filter.enable = function(n) { this.mute[n] = false; };
+filter._receive = function(msg) { if (!mute[msg.getNote()]) this._emit(msg); };
 
 var staff = JZZ.input.Kbd({keys:[
   ['c', 'c5'], ['d', 'd5'], ['e', 'e5'], ['f', 'f5'], ['g', 'g5'], ['a', 'a5'], ['b', 'b5'],
@@ -138,7 +152,7 @@ var piano = JZZ.input.Kbd({ at:'piano', from:'C5', to:'A6', ww:64, bw:36, onCrea
     d.className = 'ckbox';
     c = document.createElement('input');
     c.type = 'checkbox';
-    c.checked = true;
+    c.checked = param.disable[i + 60] ? false : true;
     c.addEventListener('change', onoff(c, i + 60));
     c.addEventListener('mousedown', stopit);
     c.addEventListener('mouseup', stopit);
@@ -155,9 +169,15 @@ filter.connect(piano);
 piano.connect(staff);
 staff.connect(piano);
 
+for (i in param.disable) {
+  mute[i] = true;
+  piano.getKey(i).disable();
+  staff.getKey(i).disable();
+}
 updateabc();
 updateqwe();
 updateoff();
+updatelink();
 
 selprogram.addEventListener('change', function() {
   currentprogram = selprogram.options[selprogram.selectedIndex].value;
@@ -258,16 +278,28 @@ function stopit(e) { e.stopPropagation(); }
 function onoff(cb, n) {
   return function(e) {
     if (cb.checked) {
-      filter.enable(n);
+      mute[n] = false;
       piano.getKey(n).enable();
       staff.getKey(n).enable();
     }
     else {
-      filter.disable(n);
+      mute[n] = true;
       piano.getKey(n).disable();
       staff.getKey(n).disable();
     }
+    updatelink();
   }
+}
+
+function updatelink() {
+  var link = [];
+  var disable = [];
+  for (var i = 60; i <= 81; i++) if (mute[i]) disable.push(i);
+  disable = disable.join(',');
+  if (disable) link.push('disable=' + disable);
+  link = link.join('&');
+  link = link ? url + '?' + link : url;
+//console.log(link);
 }
 --></script>
 
