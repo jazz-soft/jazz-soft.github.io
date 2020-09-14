@@ -76,6 +76,7 @@
  <input type=checkbox id=abc><label for=abc>Note labels</label>
  <input type=checkbox id=qwe><label for=qwe>Keyboard labels</label>
  <input type=checkbox id=off><label for=off>On/Off controls</label>
+ &nbsp;[<a id=link href=''>link</a>]
 </p><p>
 <a href=https://github.com/jazz-soft/jazz-soft.github.io/tree/master/wip/mrfunk>README and source code</a>
 </p><p>
@@ -84,7 +85,7 @@
 
 <script><!--
 var i, j;
-var param = { disable: {} };
+var param = { check: {}, disable: {} };
 var a = window.location.href.split('?');
 var url = a[0];
 var query = a[1];
@@ -93,7 +94,11 @@ if (query) {
   query = query ? query.split('&') : [];
   for (i = 0; i < query.length; i++) {
     a = query[i].split('=');
-    if (a[0] == 'disable') {
+    if (a[0] == 'check') {
+      a = a[1].split(',');
+      for (j = 0; j < a.length; j++) param.check[a[j]] = true;
+    }
+    else if (a[0] == 'disable') {
       a = a[1].split(',');
       for (j = 0; j < a.length; j++) param.disable[a[j]] = true;
     }
@@ -110,9 +115,13 @@ var selprogram = document.getElementById('selprogram');
 var abc = document.getElementById('abc');
 var qwe = document.getElementById('qwe');
 var off = document.getElementById('off');
+var link = document.getElementById('link');
 var staff = document.getElementById('staff');
 staff.ondragstart = returnfalse;
 staff.onselectstart = returnfalse;
+var check = {};
+var mute = {};
+
 
 for (i = 0; i < 128; i++) {
   selprogram[i] = new Option(JZZ.MIDI.programName(i), i);
@@ -125,7 +134,6 @@ JZZ().or(function() { alert('Cannot start MIDI'); }).and(function() {
   JZZ().openMidiOut('Web Audio').and(midioutok);
 });
 
-var mute = {};
 var filter = JZZ.Widget();
 filter._receive = function(msg) { if (!mute[msg.getNote()]) this._emit(msg); };
 
@@ -174,6 +182,9 @@ for (i in param.disable) {
   piano.getKey(i).disable();
   staff.getKey(i).disable();
 }
+abc.checked = !!param.check[1];
+qwe.checked = !!param.check[2];
+off.checked = !!param.check[3];
 updateabc();
 updateqwe();
 updateoff();
@@ -260,16 +271,22 @@ function updatemidiin() {
 function updateabc() {
   var all = document.querySelectorAll('.label');
   for(var i = 0; i < all.length; i++) all[i].style.visibility = abc.checked ? 'visible' : 'hidden';
+  check[1] = abc.checked;
+  updatelink();
 }
 
 function updateqwe() {
   var all = document.querySelectorAll('.inner');
   for(var i = 0; i < all.length; i++) all[i].style.visibility = qwe.checked ? 'visible' : 'hidden';
+  check[2] = qwe.checked;
+  updatelink();
 }
 
 function updateoff() {
   var all = document.querySelectorAll('.ckbox');
   for(var i = 0; i < all.length; i++) all[i].style.visibility = off.checked ? 'visible' : 'hidden';
+  check[3] = off.checked;
+  updatelink();
 }
 
 function returnfalse() { return false; }
@@ -292,14 +309,18 @@ function onoff(cb, n) {
 }
 
 function updatelink() {
-  var link = [];
+  var i;
+  var query = [];
+  var checked = [];
   var disable = [];
-  for (var i = 60; i <= 81; i++) if (mute[i]) disable.push(i);
+  for (i = 1; i <= 3; i++) if (check[i]) checked.push(i);
+  checked = checked.join(',');
+  if (checked) query.push('check=' + checked);
+  for (i = 60; i <= 81; i++) if (mute[i]) disable.push(i);
   disable = disable.join(',');
-  if (disable) link.push('disable=' + disable);
-  link = link.join('&');
-  link = link ? url + '?' + link : url;
-//console.log(link);
+  if (disable) query.push('disable=' + disable);
+  query = query.join('&');
+  link.href = query ? url + '?' + query : url;
 }
 --></script>
 
