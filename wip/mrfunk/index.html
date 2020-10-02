@@ -7,9 +7,11 @@
 <meta property="og:title" content="Music Staff Piano" />
 <meta property="og:description" content="Interactive Music Staff Piano for music teachers and students" />
 <style type="text/css">
+body {padding:0; margin:0; margin-top:5px;}
+p {margin-left:10px;}
 #staff {display:inline-block; width:560px; height:420px; position:relative;}
 #staff div {display:inline-block; position:absolute;}
-#clef {left:0; top:0; margin:0; padding:0;}
+#clef {left:5px; top:0; margin:0; padding:0;}
 #l0, #l1, #l2, #l3, #l4, #l5, #l6{background-color:#000; height:4px; width:960px; left:0;}
 #l0 {top:234px; left:98px; width:68px;}
 #l1 {top:198px;}
@@ -37,6 +39,7 @@
 .inner {position:absolute; bottom:5px; left:0; width:100%; text-align:center; visibility:hidden;}
 .ckbox {position:absolute; bottom:5px; left:0; width:100%; text-align:center; visibility:hidden;}
 .label {background-color:#fff; opacity:0.7; border-radius:50%; position:absolute; left:12px; top:4px;display:inline-block; font-size:24px; width:24px; height:24px; line-height:24px; visibility:hidden;}
+#pan {display:inline-block; margin-left:0px;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/jzz"></script>
 <script src="https://cdn.jsdelivr.net/npm/jzz-synth-tiny"></script>
@@ -45,6 +48,7 @@
 </head>
 
 <body>
+<div id=pan>
 <div id=staff>
  <div id=contr>
   <label for=selmidiin>MIDI In:</label><select id=selmidiin></select> &nbsp;
@@ -71,6 +75,7 @@
  <div id=gg><span class=label>G</span></div>
  <div id=aa><span class=label>A</span></div>
  <div id=piano></div>
+</div>
 </div>
 
 <p>
