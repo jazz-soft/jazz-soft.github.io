@@ -39,7 +39,24 @@ p {margin-left:10px;}
 .inner {position:absolute; bottom:5px; left:0; width:100%; text-align:center; visibility:hidden;}
 .ckbox {position:absolute; bottom:5px; left:0; width:100%; text-align:center; visibility:hidden;}
 .label {background-color:#fff; opacity:0.7; border-radius:50%; position:absolute; left:12px; top:4px;display:inline-block; font-size:24px; width:24px; height:24px; line-height:24px; visibility:hidden;}
-#pan {display:inline-block; margin-left:0px; width:100%; overflow:hidden;}
+#pan1 {display:inline-block; margin-left:0px; width:100%; overflow:hidden;}
+@media (max-width:960px) {
+ #l1, #l2, #l3, #l4, #l5 {width:935px;}
+}
+@media (max-width:935px) {
+ #clef {left:35px;}
+ #pan {margin-left:-25px;}
+}
+@media (max-width:910px) {
+ #clef {left:50px;}
+ #pan {margin-left:-50px;}
+}
+@media (max-width:885px) {
+ #pan {margin-left:-72px;}
+}
+@media (max-width:860px) {
+ #pan {margin-left:-95px;}
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/jzz"></script>
 <script src="https://cdn.jsdelivr.net/npm/jzz-synth-tiny"></script>
@@ -48,7 +65,7 @@ p {margin-left:10px;}
 </head>
 
 <body>
-<div id=pan>
+<div id=pan><div id=pan1>
 <div id=staff>
  <div id=contr>
   <label for=selmidiin>MIDI In:</label><select id=selmidiin></select> &nbsp;
@@ -76,7 +93,7 @@ p {margin-left:10px;}
  <div id=aa><span class=label>A</span></div>
  <div id=piano></div>
 </div>
-</div>
+</div></div>
 
 <p>
  <input type=checkbox id=abc><label for=abc>Note labels</label>
