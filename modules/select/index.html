@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>JZZ.gui.Select demo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/jzz"></script>
+<script src="https://cdn.jsdelivr.net/npm/jzz-synth-tiny"></script>
+<script src="https://cdn.jsdelivr.net/npm/jzz-input-kbd"></script>
+<script src="https://cdn.jsdelivr.net/npm/jzz-midi-smf"></script>
+<script src="https://cdn.jsdelivr.net/npm/jzz-gui-select"></script>
+<script src="https://cdn.jsdelivr.net/npm/jzz-gui-player"></script>
+</head>
+
+<body>
+<h1>JZZ.gui.Select demo</h1>
+<p id=content>Please enable JavaScript!</p>
+<p id=player_space></p>
+<p id=piano_space></p>
+<p><a href=../index.html>Back</a></p>
+
+<script>
+var content = document.getElementById('content');
+content.innerHTML = 'Please run `<tt>npm install</tt>` !';
+JZZ();
+content.innerHTML = '<label for=sel_in>MIDI In:</label> <select id=sel_in></select> &xrArr; <label for=sel_out>MIDI Out:</label> <select id=sel_out></select>';
+var player = JZZ.gui.Player({ at: 'player_space', file: true, midi: false, connect: false });
+JZZ.addMidiIn('MIDI Player', player);
+JZZ.synth.Tiny.register('Web Audio');
+var piano = JZZ.input.Kbd({ at: 'piano_space' });
+JZZ.addMidiIn('HTML Piano In', piano);
+JZZ.addMidiOut('HTML Piano Out', piano);
+var input = JZZ.gui.SelectMidiIn({ at: 'sel_in' });
+var output = JZZ.gui.SelectMidiOut({ at: 'sel_out' });
+input.connect(output);
+</script>
+
+</body>
+</html>
