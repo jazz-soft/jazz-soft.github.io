@@ -132,7 +132,7 @@
 }
 </style>
 <script src="../../javascript/JZZ.js"></script>
-<script src="../../javascript/JZZ.synth.OSC.js"></script>
+<script src="../../javascript/JZZ.synth.Tiny.js"></script>
 <script src="../../javascript/JZZ.input.Kbd.js"></script>
 </head>
 
@@ -160,7 +160,7 @@ function print(msg) {
   msgarea.scrollTop = msgarea.scrollHeight;
 }
 
-JZZ.synth.OSC.register('Web Audio');
+JZZ.synth.Tiny.register('Web Audio');
 var out = JZZ().openMidiOut(/^((?!Midi Through).)*$/i);
 
 var piano = JZZ.input.Kbd({at:'keybd', from:'C5', to:'B5', wl:142, bl:96, pos:'E', 600:{pos:'N'}, onCreate:function(){

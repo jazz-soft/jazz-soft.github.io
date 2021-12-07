@@ -14,7 +14,7 @@
   if (!JZZ.synth) JZZ.synth = {};
   if (JZZ.synth.Tiny) return;
 
-  var _version = '1.2.0';
+  var _version = '1.2.8';
 
 function WebAudioTinySynth(opt){
   this.__proto__ = this.sy =
@@ -357,10 +357,13 @@ function WebAudioTinySynth(opt){
       var i;
       this.pg=[]; this.vol=[]; this.ex=[]; this.bend=[]; this.rpnidx=[]; this.brange=[];
       this.sustain=[]; this.notetab=[]; this.rhythm=[];
+      this.masterTuningC=0; this.masterTuningF=0; this.tuningC=[]; this.tuningF=[]; this.scaleTuning=[];
       this.maxTick=0, this.playTick=0, this.playing=0; this.releaseRatio=3.5;
       for(var i=0;i<16;++i){
         this.pg[i]=0; this.vol[i]=3*100*100/(127*127);
         this.bend[i]=0; this.brange[i]=0x100;
+        this.tuningC[i]=0; this.tuningF[i]=0;
+        this.scaleTuning[i]=[0,0,0,0,0,0,0,0,0,0,0,0];
         this.rhythm[i]=0;
       }
       this.rhythm[9]=1;
@@ -445,7 +448,12 @@ function WebAudioTinySynth(opt){
         this.resetAllControllers(i);
         this.allSoundOff(i);
         this.rhythm[i]=0;
+        this.tuningC[i]=0;
+        this.tuningF[i]=0;
+        this.scaleTuning[i]=[0,0,0,0,0,0,0,0,0,0,0,0];
       }
+      this.masterTuningC=0;
+      this.masterTuningF=0;
       this.rhythm[9]=1;
     },
     setQuality:function(q){
@@ -517,7 +525,7 @@ function WebAudioTinySynth(opt){
     _note:function(t,ch,n,v,p){
       var out,sc,pn;
       var o=[],g=[],vp=[],fp=[],r=[];
-      var f=440*Math.pow(2,(n-69)/12);
+      var f=440*Math.pow(2,(n-69 + this.masterTuningC + this.tuningC[ch] + (this.masterTuningF + this.tuningF[ch] + this.scaleTuning[ch][n%12]))/12);
       this._limitVoices(ch,n);
       for(var i=0;i<p.length;++i){
         pn=p[i];
@@ -724,16 +732,32 @@ function WebAudioTinySynth(opt){
         case 10: this.setPan(ch,msg[2],t); break;
         case 11: this.setExpression(ch,msg[2],t); break;
         case 64: this.setSustain(ch,msg[2],t); break;
-        case 98:  case 98: this.rpnidx[ch]=0x3fff; break; /* nrpn lsb/msb */
-        case 100: this.rpnidx[ch]=(this.rpnidx[ch]&0x380)|msg[2]; break; /* rpn lsb */
+        case 98:  case 99: this.rpnidx[ch]=0x3fff; break; /* nrpn lsb/msb */
+        case 100: this.rpnidx[ch]=(this.rpnidx[ch]&0x3f80)|msg[2]; break; /* rpn lsb */
         case 101: this.rpnidx[ch]=(this.rpnidx[ch]&0x7f)|(msg[2]<<7); break; /* rpn msb */
         case 6:  /* data entry msb */
-          if(this.rpnidx[ch]==0)
-            this.brange[ch]=(msg[2]<<7)+(this.brange[ch]&0x7f);
+          switch (this.rpnidx[ch]) {
+            case 0:
+              this.brange[ch]=(msg[2]<<7)+(this.brange[ch]&0x7f);
+              break;
+            case 1:
+              this.tuningF[ch]=(msg[2]<<7)+((this.tuningF[ch]+0x2000)&0x7f)-0x2000;
+              break;
+            case 2:
+              this.tuningC[ch]=msg[2]-0x40;
+              break;
+          }
           break;
         case 38:  /* data entry lsb */
-          if(this.rpnidx[ch]==0)
-            this.brange[ch]=(this.brange[ch]&0x380)|msg[2];
+          switch (this.rpnidx[ch]) {
+            case 0:
+              this.brange[ch]=(this.brange[ch]&0x3f80)|msg[2];
+              break;
+            case 1:
+              this.tuningF[ch]=((this.tuningF[ch]+0x2000)&0x3f80)|msg[2]-0x2000;
+              break;
+            case 2: break;
+          }
           break;
         case 120:  /* all sound off */
         case 123:  /* all notes off */
@@ -757,10 +781,33 @@ function WebAudioTinySynth(opt){
           for(var ii=0;ii<msg.length;++ii)
             ds.push(msg[ii].toString(16));
         }
-        if(msg[1]==0x41&&msg[2]==0x10&&msg[3]==0x42&&msg[4]==0x12&&msg[5]==0x40){
-          if((msg[6]&0xf0)==0x10&&msg[7]==0x15){
-            var ch=[9,0,1,2,3,4,5,6,7,8,10,11,12,13,14,15][msg[6]&0xf];
-            this.rhythm[ch]=msg[8];
+        if (msg[0]==0xf0) {
+          if (msg[1]==0x7f && msg[3]==4) {
+            if (msg[4]==3 && msg.length >= 8) { // Master Fine Tuning
+              this.masterTuningF = (msg[6]*0x80 + msg[5] - 8192) / 8192;
+            }
+            if (msg[4]==4 && msg.length >= 8) { // Master Coarse Tuning
+              this.masterTuningC = msg[6]-0x40;
+            }
+          }
+          if (msg[1]==0x41 && msg[3]==0x42 && msg[4]==0x12 &&msg[5]==0x40) { // GS
+            if ((msg[6]&0xf0)==0x10 && msg.length==11) {
+              var c=[9,0,1,2,3,4,5,6,7,8,10,11,12,13,14,15][msg[6]&0xf];
+              if (msg[7]==0x15) {
+                this.rhythm[c]=msg[8];
+              }
+              else if (msg[7] >= 0x40 && msg[7] <= 0x4b) { // Scale Tuning
+                this.scaleTuning[c][msg[7]-0x40] = (msg[8]-0x40) / 100;
+              }
+            }
+            else if (msg[6]==0) {
+              if (msg[7]==0 && msg.length==14) { // Master Tuning
+                this.masterTuningF = (msg[8]*0x1000 + msg[9]*0x100 + msg[10]*0x10 + msg[11] - 0x400) / 1000;
+              }
+              else if (msg[7]==5 && msg.length==11) { // Master Transpose
+                this.masterTuningC = msg[8]-0x40;
+              }
+            }
           }
         }
         break;
@@ -862,6 +909,19 @@ function WebAudioTinySynth(opt){
   this.ready();
 }
 
+  function _clone(obj, key, val) {
+    if (typeof key == 'undefined') return _clone(obj, [], []);
+    if (obj instanceof Object) {
+      for (var i = 0; i < key.length; i++) if (key[i] === obj) return val[i];
+      var ret;
+      if (obj instanceof Array) ret = []; else ret = {};
+      key.push(obj); val.push(ret);
+      for(var k in obj) if (obj.hasOwnProperty(k)) ret[k] = _clone(obj[k], key, val);
+      return ret;
+    }
+    return obj;
+  }
+
   var _ac = JZZ.lib.getAudioContext();
 
   var _synth = {};
@@ -896,6 +956,8 @@ function WebAudioTinySynth(opt){
         synth.setAudioContext(dest.context, dest);
       }
     };
+    port.setSynth = function(n, s, k) { synth.setTimbre(!!k, n, _clone(s)); };
+    port.getSynth = function(n, k) { return k ? _clone(synth.drummap[n - 35]) : _clone(synth.program[n]); };
     port._info = _engine._info(name);
     port._receive = function(msg) { synth.send(msg); };
     port._resume();

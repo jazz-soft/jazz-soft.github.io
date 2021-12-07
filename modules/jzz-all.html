@@ -4,9 +4,8 @@
 <title>JZZ test</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="../javascript/JZZ.js"></script>
-<script src="../javascript/JZZ.synth.OSC.js"></script>
+<script src="../javascript/JZZ.synth.Tiny.js"></script>
 <script src="../javascript/JZZ.input.Kbd.js"></script>
-<script src="../javascript/JZZ.input.ASCII.js"></script>
 <style type="text/css">
 .inner {position:absolute; bottom:0; left:0; width:100%; text-align:center;}
 #midiIn { height: 11em;}
@@ -63,7 +62,7 @@ function openIn(name) {
     });
 }
 
-JZZ.synth.OSC.register("Web Audio");
+JZZ.synth.Tiny.register("Web Audio");
 var ascii = JZZ.input.ASCII({Z:'C5', S:'C#5', X:'D5', D:'D#5', C:'E5', V:'F5', G:'F#5', B:'G5', H:'Ab5', N:'A5', J:'Bb5', M:'B5'});
 JZZ.input.Kbd.register("HTML Piano", {at: 'piano', from: 'C5', to: 'B5', onCreate: function(){
   this.getBlackKeys().setStyle({color:'#fff'});

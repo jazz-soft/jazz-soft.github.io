@@ -159,7 +159,7 @@
       self.fileInput.type = 'file';
       self.fileInput.style.position = 'fixed';
       self.fileInput.style.top = '-1000px';
-      self.fileInput.accept = '.mid, .midi, .kar, .rmi';
+      self.fileInput.accept = '.mid, .midi, .kar, .rmi, .syx';
       self.gui.appendChild(self.fileInput);
 
       if (window.FileReader) {
@@ -262,6 +262,7 @@
       link: false,
       midi: true,
       close: false,
+      sndoff: true,
       ports: [undefined, /MIDI Through/i],
       connect: true
     };
@@ -274,6 +275,8 @@
     arg.ports.push(undefined);
     this._ports = arg.ports;
     this._conn = arg.connect;
+    this._sndoff = arg.sndoff;
+    this.disable();
 
     if (typeof arg.at == 'string') {
       try {
@@ -313,6 +316,7 @@
     this.stopBtn.disable();
     this.loopBtn.disable();
     this.midiBtn.disable();
+    if (this._conn) this.midiBtn.off();
     this.fileBtn.off();
     this.rail.style.borderColor = '#aaa';
     this.rail.style.backgroundColor = '#888';
@@ -336,6 +340,7 @@
     this._player.connect(this);
     this._player.onEnd = function() { self._onEnd(); };
     this._player.filter(this._setfilter);
+    if (!this._sndoff) this._player.sndOff = empty;
     this.enable();
     this.onLoad(smf);
   };
@@ -506,8 +511,13 @@
       var data = '';
       var bytes = new Uint8Array(e.target.result);
       for (var i = 0; i < bytes.length; i++) data += String.fromCharCode(bytes[i]);
+      var smf;
       try {
-        var smf = new JZZ.MIDI.SMF(data);
+        smf = new JZZ.MIDI.SYX(data);
+      }
+      catch (err) {}
+      try {
+        if (!smf) smf = new JZZ.MIDI.SMF(data);
         self.stop();
         JZZ.lib.schedule(function() { self.load(smf); });
         if (self.linkBtn) self.setUrl('data:audio/midi;base64,' + JZZ.lib.toBase64(data), f.name);
@@ -526,7 +536,7 @@
     this._more = false;
   };
   Player.prototype.settings = function() {
-    if (!this._player || this._more || !this._conn) return;
+    if (this._more || !this._conn) return;
     var self = this;
     this._more = true;
     this.midiBtn.on();
@@ -696,7 +706,7 @@
   Player.prototype.connect = function(port) {
     if (port == this) {
       this._conn = true;
-      if (this._player) this.midiBtn.off();
+      this.midiBtn.off();
     }
     else {
       this._connect(port);
@@ -706,12 +716,14 @@
     if (port == this) {
       this._conn = false;
       if (this._out) this._disconnect(this._out);
-      if (this._player) this.midiBtn.disable();
+      this._outname = undefined;
+      this.midiBtn.disable();
     }
     else {
       this._disconnect(port);
     }
   };
+  Player.prototype.connected = function() { return this._outname; };
 
   JZZ.gui.Player = Player;
 });

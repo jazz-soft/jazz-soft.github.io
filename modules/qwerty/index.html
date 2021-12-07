@@ -4,7 +4,7 @@
 <title>JZZ.input.Qwerty demo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="../../javascript/JZZ.js"></script>
-<script src="../../javascript/JZZ.synth.OSC.js"></script>
+<script src="../../javascript/JZZ.synth.Tiny.js"></script>
 <script src="../../javascript/qwerty-hancock.js"></script>
 <script src="../../javascript/JZZ.input.Qwerty.js"></script>
 </head>
@@ -15,7 +15,7 @@
 </p>
 
 <script><!--
-JZZ.synth.OSC.register('Web Audio');
+JZZ.synth.Tiny.register('Web Audio');
 JZZ.input.Qwerty({ id: 'qwerty', width: 281, height: 150, octaves: 1, startNote: 'C4' })
      .or(function(){ alert('Cannot open MIDI In!\n' + this.err()); })
      .connect(JZZ().openMidiOut(/^((?!Midi Through).)*$/i));
