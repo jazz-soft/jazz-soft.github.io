@@ -1,4 +1,5 @@
 (function(global, factory) {
+  /* istanbul ignore next */
   if (typeof exports === 'object' && typeof module !== 'undefined') {
     module.exports = factory;
   }
@@ -13,8 +14,9 @@
   if (!JZZ.gui) JZZ.gui = {};
   if (JZZ.gui.Player) return;
 
-  function empty() {}
-  var _noBtn = { on: empty, off: empty, disable: empty, title: empty, div: {} };
+  /* istanbul ignore next */
+  function nop() {}
+  var _noBtn = { on: nop, off: nop, disable: nop, title: nop, div: {} };
 
   function Btn(html) {
     this.div = document.createElement('div');
@@ -340,7 +342,7 @@
     this._player.connect(this);
     this._player.onEnd = function() { self._onEnd(); };
     this._player.filter(this._setfilter);
-    if (!this._sndoff) this._player.sndOff = empty;
+    if (!this._sndoff) this._player.sndOff = nop;
     this.enable();
     this.onLoad(smf);
   };
@@ -348,8 +350,9 @@
     this._setfilter = f instanceof Function ? f : undefined;
     if (this._player) this._player.filter(this._setfilter);
   };
-  Player.prototype.onEnd = function() {};
-  Player.prototype.onLoad = function() {};
+  Player.prototype.onSelect = nop;
+  Player.prototype.onEnd = nop;
+  Player.prototype.onLoad = nop;
   Player.prototype._onEnd = function() {
     this.onEnd();
     if (this._loop && this._loop != -1) this._loop--;
@@ -372,8 +375,8 @@
     var off = Math.round(this._player.positionMS() * this.rlen / this._player.durationMS()) - 5;
     this.caret.style.left = off + 'px';
   };
-  Player.prototype.onPlay = function() {};
-  Player.prototype.onResume = function() {};
+  Player.prototype.onPlay = nop;
+  Player.prototype.onResume = nop;
   Player.prototype._resume = function() {
     var self = this;
     this._player.resume();
@@ -400,6 +403,7 @@
           self.midiBtn.title(self._outname);
           self._connect(this);
           self._waiting = false;
+          self.onSelect(self._outname);
           if (self._playing) {
             self._resume();
           }
@@ -410,7 +414,7 @@
       }
     }
   };
-  Player.prototype.onStop = function() {};
+  Player.prototype.onStop = nop;
   Player.prototype.stop = function() {
     if (this._player) {
       var self = this;
@@ -424,7 +428,7 @@
       this._move();
     }
   };
-  Player.prototype.onPause = function() {};
+  Player.prototype.onPause = nop;
   Player.prototype.pause = function(p) {
     if (this._player) {
       var self = this;
@@ -471,7 +475,7 @@
       }
     }
   };
-  Player.prototype.onClose = function() {};
+  Player.prototype.onClose = nop;
   Player.prototype.destroy = function() {
     this.stop();
     if (this._out) {
@@ -529,7 +533,7 @@
 
   // selecting MIDI
 
-  Player.prototype.onSelect = function() {};
+  Player.prototype.onSelect = nop;
   Player.prototype._closeselect = function() {
     this.midiBtn.off();
     this.sel.style.display = 'none';
@@ -556,23 +560,26 @@
       self._newname = undefined;
       self._closeselect();
     }).and(function() {
-      self._outname = self._newname;
-      if (self._out) {
-        if (self._playing) for (var c = 0; c < 16; c++) self._out._receive(JZZ.MIDI.allSoundOff(c));
-        self._disconnect(self._out);
-        self._out.close();
-      }
-      self._out = this;
-      self._connect(this);
       self._newname = undefined;
-      self._closeselect();
-      self.midiBtn.title(self._outname);
-      setTimeout(function() { self.onSelect(self._outname); }, 0);
+      if (self._outname != this.name()) {
+        self._outname = this.name();
+        self._closeselect();
+        if (self._out) {
+          if (self._playing) for (var c = 0; c < 16; c++) self._out._receive(JZZ.MIDI.allSoundOff(c));
+          self._disconnect(self._out);
+          self._out.close();
+        }
+        self._out = this;
+        self._connect(this);
+        self.midiBtn.title(self._outname);
+        self.onSelect(self._outname);
+        setTimeout(function() { self.onSelect(self._outname); }, 0);
+      }
     });
   };
   Player.prototype.select = function(name) {
     var self = this;
-    this._newname = name;
+    this._newname = name || 0;
     if (this._newname == this._outname) {
       this._newname = undefined;
       this._closeselect();
@@ -597,7 +604,7 @@
   Player.prototype.positionMS = function() { return this._player ? this._player.positionMS() : 0; };
   Player.prototype.tick2ms = function() { return this._player ? this._player.tick2ms() : 0; };
   Player.prototype.ms2tick = function() { return this._player ? this._player.ms2tick() : 0; };
-  Player.prototype.onJump = function() {};
+  Player.prototype.onJump = nop;
   Player.prototype.jump = function(pos) {
     if (this._player) {
       this._player.jump(pos);

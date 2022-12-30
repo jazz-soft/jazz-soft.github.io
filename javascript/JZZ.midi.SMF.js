@@ -14,7 +14,7 @@
   /* istanbul ignore next */
   if (JZZ.MIDI.SMF) return;
 
-  var _ver = '1.6.4';
+  var _ver = '1.7.1';
 
   var _now = JZZ.lib.now;
   function _error(s) { throw new Error(s); }
@@ -35,6 +35,13 @@
   }
   function _num4le(n) {
     return String.fromCharCode(n & 0xff) + String.fromCharCode((n >> 8) & 0xff) + String.fromCharCode((n >> 16) & 0xff) + String.fromCharCode((n >> 24) & 0xff);
+  }
+  function _u8a2s(u) {
+    var s = '';
+    var len = u.byteLength;
+    // String.fromCharCode.apply(null, u) throws "RangeError: Maximum call stack size exceeded" on large files
+    for (var i = 0; i < len; i++) s += String.fromCharCode(u[i]);
+    return s;
   }
 
   function SMF() {
@@ -58,30 +65,31 @@
         for (var i = 0; i < arguments[0].length; i++) self[0].add(0, arguments[0][i]);
         return self;
       }
+      var data;
       try {
         if (arguments[0] instanceof ArrayBuffer) {
-          self.load(String.fromCharCode.apply(null, new Uint8Array(arguments[0])));
-          return self;
+          data = _u8a2s(new Uint8Array(arguments[0]));
         }
       }
       catch (err) {/**/}
       try {
         if (arguments[0] instanceof Uint8Array || arguments[0] instanceof Int8Array) {
-          self.load(String.fromCharCode.apply(null, new Uint8Array(arguments[0])));
-          return self;
+          data = _u8a2s(new Uint8Array(arguments[0]));
         }
       }
       catch (err) {/**/}
       try {
         /* istanbul ignore next */
         if (arguments[0] instanceof Buffer) {
-          self.load(arguments[0].toString('binary'));
-          return self;
+          data = arguments[0].toString('binary');
         }
       }
       catch (err) {/**/}
       if (typeof arguments[0] == 'string' && arguments[0] != '0' && arguments[0] != '1' && arguments[0] != '2') {
-        self.load(arguments[0]);
+        data = arguments[0];
+      }
+      if (data) {
+        self.load(data);
         return self;
       }
       type = parseInt(arguments[0]);
@@ -956,7 +964,6 @@
   Player.prototype.trim = function() {
     var i, j, e;
     var data = [];
-    var dt = 0;
     j = 0;
     for (i = 0; i < this._data.length; i++) {
       e = this._data[i];
@@ -964,14 +971,14 @@
         for (; j <= i; j++) data.push(this._data[j]);
       }
     }
-    dt += this._data[i - 1].tt - this._data[j - 1].tt;
+    var dt = (i ? this._data[i - 1].tt : 0) - (j ? this._data[j - 1].tt : 0);
     this._data = data;
     this._timing();
     return dt;
   };
   Player.prototype._timing = function() {
     var i, m, t, e;
-    this._duration = this._data[this._data.length - 1].tt;
+    this._duration = this._data.length ? this._data[this._data.length - 1].tt : 0;
     this._ttt = [];
     if (this.ppqn) {
       this._mul = this.ppqn / 500.0; // 120 bpm
@@ -1087,13 +1094,13 @@
       }
       try {
         if (arg instanceof ArrayBuffer) {
-          arg = String.fromCharCode.apply(null, new Uint8Array(arg));
+          arg = _u8a2s(new Uint8Array(arg));
         }
       }
       catch (err) {/**/}
       try {
         if (arg instanceof Uint8Array || arg instanceof Int8Array) {
-          arg = String.fromCharCode.apply(null, new Uint8Array(arg));
+          arg = _u8a2s(new Uint8Array(arg));
         }
       }
       catch (err) {/**/}
@@ -1143,6 +1150,7 @@
       else _not_a_syx();
     }
   };
+  SYX.prototype.validate = function() { return []; };
   SYX.prototype.dump = function() {
     var i, j, s = '';
     for (i = 0; i < this.length; i++) for (j = 0; j < this[i].length; j++) s += String.fromCharCode(this[i][j]);

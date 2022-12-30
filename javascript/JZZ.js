@@ -14,7 +14,7 @@
 })(this, function() {
 
   var _scope = typeof window === 'undefined' ? global : window;
-  var _version = '1.4.6';
+  var _version = '1.5.6';
   var i, j, k, m, n;
 
   /* istanbul ignore next */
@@ -1605,9 +1605,15 @@
     for (n = 0; n < 12; n++) {
       m = _noteMap[k] + n * 12;
       if (m > 127) break;
-      _noteNum[k + n] = m;
-      if (m > 0) { _noteNum[k + 'b' + n] = m - 1; _noteNum[k + 'bb' + n] = m - 2; }
-      if (m < 127) { _noteNum[k + '#' + n] = m + 1; _noteNum[k + '##' + n] = m + 2; }
+      _noteNum[k + n] = m; _noteNum[k + '♮' + n] = m;
+      if (m > 0) {
+        _noteNum[k + 'b' + n] = m - 1; _noteNum[k + '♭' + n] = m - 1;
+        _noteNum[k + 'bb' + n] = m - 2; _noteNum[k + '♭♭' + n] = m - 2; _noteNum[k + '𝄫' + n] = m - 2;
+      }
+      if (m < 127) {
+        _noteNum[k + '#' + n] = m + 1; _noteNum[k + '♯' + n] = m + 1;
+        _noteNum[k + '##' + n] = m + 2; _noteNum[k + '♯♯' + n] = m + 2; _noteNum[k + '𝄪' + n] = m + 2;
+      }
     }
   });
   for (n = 0; n < 128; n++) _noteNum[n] = n;
@@ -2774,6 +2780,39 @@
   JZZ.lib = {};
   JZZ.lib.now = _now;
   JZZ.lib.schedule = _schedule;
+  var _sch_list = [];
+  var _sch_worker;
+  var _sch_count = 0;
+  try {
+    var _blob = URL.createObjectURL(new Blob(['(', function() {
+      function tick() {
+        postMessage({});
+        setTimeout(tick, 0);
+      }
+      tick();
+    }.toString(), ')()'], { type: 'application/javascript' }));
+    var _sch_tick = function() {
+      var n = _sch_list.length;
+      // cannot use i < _sch_list.length !
+      for (var i = 0; i < n; i++) _sch_list.shift()();
+      _sch_count++;
+      if (_sch_count > 20 && _sch_worker) {
+        _sch_worker.terminate();
+        _sch_worker = undefined;
+      }
+    };
+    var _sch = function(x) {
+      _sch_list.push(x);
+      _sch_count = 0;
+      if (!_sch_worker) {
+        _sch_worker = new Worker(_blob);
+        _sch_worker.onmessage = _sch_tick;
+      }
+    };
+    _sch(function() { JZZ.lib.schedule = _sch; });
+  }
+  catch (e) {}
+
   JZZ.lib.openMidiOut = function(name, engine) {
     var port = new _M();
     engine._openOut(port);
@@ -2828,17 +2867,19 @@
             if (!osc.stop) osc.stop = osc.noteOff;
             osc.start(0.1); osc.stop(0.11);
           }
-          else {
+          else if (typeof document != 'undefined') {
             document.removeEventListener('touchstart', _activateAudioContext);
             document.removeEventListener('touchend', _activateAudioContext);
             document.removeEventListener('mousedown', _activateAudioContext);
             document.removeEventListener('keydown', _activateAudioContext);
           }
         };
-        document.addEventListener('touchstart', _activateAudioContext);
-        document.addEventListener('touchend', _activateAudioContext);
-        document.addEventListener('mousedown', _activateAudioContext);
-        document.addEventListener('keydown', _activateAudioContext);
+        if (typeof document != 'undefined') {
+          document.addEventListener('touchstart', _activateAudioContext);
+          document.addEventListener('touchend', _activateAudioContext);
+          document.addEventListener('mousedown', _activateAudioContext);
+          document.addEventListener('keydown', _activateAudioContext);
+        }
         _activateAudioContext();
       }
     }

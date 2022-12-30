@@ -1,4 +1,5 @@
 (function(global, factory) {
+  /* istanbul ignore next */
   if (typeof exports === 'object' && typeof module !== 'undefined') {
     module.exports = factory;
   }
@@ -10,11 +11,14 @@
   }
 })(this, function(JZZ) {
 
+  /* istanbul ignore next */
   if (!JZZ) return;
+  /* istanbul ignore next */
   if (!JZZ.synth) JZZ.synth = {};
+  /* istanbul ignore next */
   if (JZZ.synth.Tiny) return;
 
-  var _version = '1.2.8';
+  var _version = '1.3.3';
 
 function WebAudioTinySynth(opt){
   this.__proto__ = this.sy =
@@ -370,6 +374,7 @@ function WebAudioTinySynth(opt){
       /**/
       this.preroll=0.2;
       this.relcnt=0;
+      /* istanbul ignore next */
       setInterval(
         function(){
           if(++this.relcnt>=3){
@@ -525,7 +530,7 @@ function WebAudioTinySynth(opt){
     _note:function(t,ch,n,v,p){
       var out,sc,pn;
       var o=[],g=[],vp=[],fp=[],r=[];
-      var f=440*Math.pow(2,(n-69 + this.masterTuningC + this.tuningC[ch] + (this.masterTuningF + this.tuningF[ch] + this.scaleTuning[ch][n%12]))/12);
+      var f=440*Math.pow(2,(n-69 + this.masterTuningC + this.tuningC[ch] + (this.masterTuningF + this.tuningF[ch]/8192 + this.scaleTuning[ch][n%12]))/12);
       this._limitVoices(ch,n);
       for(var i=0;i<p.length;++i){
         pn=p[i];
@@ -754,7 +759,7 @@ function WebAudioTinySynth(opt){
               this.brange[ch]=(this.brange[ch]&0x3f80)|msg[2];
               break;
             case 1:
-              this.tuningF[ch]=((this.tuningF[ch]+0x2000)&0x3f80)|msg[2]-0x2000;
+              this.tuningF[ch]=(((this.tuningF[ch]+0x2000)&0x3f80)|msg[2])-0x2000;
               break;
             case 2: break;
           }
@@ -922,7 +927,11 @@ function WebAudioTinySynth(opt){
     return obj;
   }
 
-  var _ac = JZZ.lib.getAudioContext();
+  var _ac;
+  function initAC() {
+    if (!_ac) _ac = JZZ.lib.getAudioContext();
+    return !!_ac;
+  }
 
   var _synth = {};
   var _noname = [];
@@ -931,7 +940,7 @@ function WebAudioTinySynth(opt){
   _engine._info = function(name) {
     if (!name) name = 'JZZ.synth.Tiny';
     return {
-      type: 'Web Audo',
+      type: 'Web Audio',
       name: name,
       manufacturer: 'virtual',
       version: _version
@@ -939,7 +948,12 @@ function WebAudioTinySynth(opt){
   };
 
   _engine._openOut = function(port, name) {
-    if (!_ac) { port._crash('AudioContext not supported'); return; }
+    initAC();
+    /* istanbul ignore next */
+    if (!_ac) {
+      port._crash('AudioContext not supported');
+      return;
+    }
     var synth;
     if (typeof name !== 'undefined') {
       name = '' + name;
@@ -968,7 +982,7 @@ function WebAudioTinySynth(opt){
   };
 
   JZZ.synth.Tiny.register = function(name) {
-    return _ac ? JZZ.lib.registerMidiOut(name, _engine) : false;
+    return initAC() ? JZZ.lib.registerMidiOut(name, _engine) : false;
   };
 
   JZZ.synth.Tiny.version = function() { return _version; };
