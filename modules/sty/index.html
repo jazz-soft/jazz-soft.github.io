@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+<title>Style View</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/jzz"></script>
+<script src="https://cdn.jsdelivr.net/npm/jzz-midi-smf"></script>
+<script src="https://cdn.jsdelivr.net/npm/jzz-midi-sty"></script>
+<script src="https://cdn.jsdelivr.net/npm/jzz-synth-tiny"></script>
+<script src="https://cdn.jsdelivr.net/npm/jzz-gui-select"></script>
+<style>
+.knob { width:1em; height:1em; display:inline-block; margin-left:.2em; margin-right:.2em; }
+.knobb { width:1em; height:1em; display:inline-block; margin-left:.2em; margin-right:.2em; text-align:center; background-color:#ddd; line-height:1em; vertical-align:middle; margin=0; }
+.title { min-width:8em; display:inline-block; margin-right:.2em; font-weight:bold; }
+.drop { margin-left:1.5em; }
+.hide { display:none; }
+</style>
+</head>
+
+<body>
+
+<h1>Style View</h1>
+<p id=panel>Please enable JavaScript!</p>
+
+<hr>
+<p>
+<a href=https://github.com/jazz-soft/JZZ-midi-STY>JZZ-midi-STY at GitHub</a>
+</p><p>
+<a href=../index.html>Back</a>
+</p>
+
+<script>
+var panel = document.getElementById('panel');
+panel.innerHTML = 'Please run <tt style="background-color:#bbf;"><b>npm install</b></tt> to enable this test.';
+JZZ.synth.Tiny.register('Web Audio');
+var SMF = JZZ.MIDI.SMF;
+var STY = JZZ.MIDI.STY;
+panel.innerHTML = 'Midi-Out: <select id="midi_out"></select> File: ';
+var midi_out = JZZ.gui.SelectMidiOut({ at: 'midi_out' });
+midi_out.select();
+var input = document.createElement('input');
+input.type = 'file';
+input.accept = '.sty,.sst,.prs';
+input.addEventListener("change", load_file);
+panel.appendChild(input);
+panel.appendChild(document.createElement('hr'));
+var display = document.createElement('div');
+panel.appendChild(display);
+var gui;
+
+function load_file() {
+  if (window.FileReader) {
+    var reader = new FileReader();
+    reader.onload = function(e) { load_sty(e.target.result); };
+    reader.readAsArrayBuffer(input.files[0]);
+  }
+  else alert('File API is not supported in this browser.');
+}
+function load_sty(data) {
+  try {
+    var sty = new STY(data);
+    display_sty(sty);
+  }
+  catch (err) { alert(err.message); }
+}
+function display_sty(sty) {
+  display.innerHTML = '';
+  gui = new Cell(display, 0, 'Style', sty.name, sty, populate);
+  gui.expand();
+}
+
+function Cell(parent, type, title, text, ref, pop) {
+  var self = this;
+  this.populate = pop;
+  this.div = document.createElement('div');
+  var knob = square(type);//document.createElement('span');
+  if (type == 1) {
+    knob.innerHTML = '+';
+    knob.addEventListener('click', function() {
+      if (self.exp) {
+        self.collapse();
+        knob.innerHTML = '+';
+      }
+      else {
+        self.expand();
+        knob.innerHTML = '-';
+      }
+      self.exp = !self.exp;
+    });
+  }
+  this.div.appendChild(knob);
+  var span = document.createElement('span');
+  span.className = 'title';
+  span.innerHTML = title;
+  this.div.appendChild(span);
+  span = document.createElement('span');
+  span.innerHTML = text;
+  this.div.appendChild(span);
+  this.ref = ref;
+  parent.appendChild(this.div);
+}
+Cell.prototype.expand = function() {
+  if (!this.more) {
+    this.more = document.createElement('div');
+    this.more.className = 'drop';
+    if (this.populate) this.populate();
+    this.div.appendChild(this.more);
+  }
+  this.more.classList.remove('hide');
+}
+Cell.prototype.collapse = function() {
+  this.more.classList.add('hide');
+}
+var svg_play = '<svg fill="#555" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M8 5v14l11-7z"/><path d="M0 0h24v24H0z" fill="none"/></svg>';
+var svg_stop = '<svg fill="#555" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M6 6h12v12H6z"/></svg>';
+function MidiCell(parent, title, smf) {
+  var a, p, q;
+  var cell = new Cell(parent, 0, title, '');
+  a = document.createElement('a');
+  a.href = 'data:audio/midi;base64,' + JZZ.lib.toBase64(smf.dump());
+  a.download = title.split(' ').join('-') + '.mid';
+  q = square(1);
+  q.innerHTML = '<svg fill="#555" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/><path fill="none" d="M0 0h24v24H0z"/></svg>';
+  a.appendChild(q);
+  a.title = 'export';
+  cell.div.appendChild(a);
+  p = square(1);
+  p.innerHTML = svg_play;
+  p.title = 'play';
+  cell.div.appendChild(p);
+
+  var player;
+  var playing = false;
+  p.addEventListener('click', function() {
+    if (playing) {
+      if (player) {
+        player.stop();
+        player.onEnd();
+      }
+    }
+    else {
+      if (!player) {
+        player = smf.player();
+        player.connect(midi_out);
+        player.onEnd = function() {
+          playing = false;
+          p.innerHTML = svg_play;
+          p.title = 'play';
+        };
+      }
+      playing = true;
+      p.innerHTML = svg_stop;
+      p.title = 'stop';
+      player.play();
+    }
+  });
+
+  return cell;
+}
+function square(t, s) {
+  sq = document.createElement('span');
+  sq.className = t ? 'knobb' : 'knob';
+  if (s) sq.innerHTML = s;
+  return sq;
+}
+function hex(n) {
+  return ('0' + n.toString(16).toUpperCase()).substr(-2);
+}
+function populate() {
+  this.cells = [];
+  this.cells.push(new Cell(this.more, 1, 'MTrk', [this.ref.tsig || '', this.ref.bpm ? this.ref.bpm + ' bpm' : '' ].join('; ').trim(), this.ref, populate_mtrk));
+  if (this.ref.casm) this.cells.push(new Cell(this.more, 1, 'CASM', '', this.ref, populate_casm));
+  if (this.ref.otsc) this.cells.push(new Cell(this.more, 1, 'OTSc', '', this.ref, populate_otsc));
+  if (this.ref.fnrc) this.cells.push(new Cell(this.more, 1, 'FNRc', '', this.ref, populate_fnrc));
+  if (this.ref.mhhd) this.cells.push(new Cell(this.more, 0, 'MHhd', 'not supported'));
+}
+function populate_mtrk() {
+  var i, j, t, smf, trk;
+  this.cells = [];
+  for (i = 0; i < this.ref.mtrk.length; i++) {
+    t = this.ref.trk[this.ref.mtrk[i]];
+    smf = new JZZ.MIDI.SMF(0, this.ref.ppqn);
+    trk = new JZZ.MIDI.SMF.MTrk();
+    if (this.ref.tempo) trk.add(0, JZZ.MIDI.smfTempo(this.ref.tempo));
+    for (j = 0; j < t.length; j++) trk.add(t[j].tt, t[j]);
+    smf.push(trk);
+    this.cells.push(new MidiCell(this.more, this.ref.mtrk[i], smf));
+  }
+}
+function populate_casm() {
+  var i, j, cell;
+  this.cells = [];
+  for (i = 0; i < this.ref.casm.length; i++) {
+    this.cells.push(new Cell(this.more, 1, this.ref.casm[i].sdec, '', this.ref.casm[i], populate_ctab));
+  }
+}
+function populate_ctab() {
+  var i, t;
+  this.cells = [];
+  if (this.ref.ctab) for (i = 0; i < this.ref.ctab.length; i++) {
+    t = this.ref.ctab[i];
+    this.cells.push(new Cell(this.more, 1, 'Ctab ' + hex(t.src) + (t.editable ? ' *' : ''), t.name + ' ⇒ ' + JZZ.MIDI.STY.partName(t.dest), t, populate_ctb));
+  }
+  if (this.ref.ctb2) for (i = 0; i < this.ref.ctb2.length; i++) {
+    t = this.ref.ctb2[i];
+    this.cells.push(new Cell(this.more, 1, 'Ctb2 ' + hex(t.src) + (t.editable ? ' *' : ''), t.name + ' ⇒ ' + JZZ.MIDI.STY.partName(t.dest), t, populate_ctb));
+  }
+  if (this.ref.cntt) for (i = 0; i < this.ref.cntt.length; i++) {
+    t = this.ref.cntt[i];
+    this.cells.push(new Cell(this.more, 0, 'Cntt ' + hex(t.src), JZZ.MIDI.STY.nttName(t.ntt, true), this.ref));
+  }
+}
+function populate_ctb() {
+  var i, m, x;
+  x = [];
+  m = 1;
+  this.cells = [];
+  for (i = 0; i < 12; i++) {
+    if (this.ref.notes & m) x.push(JZZ.MIDI.STY.noteName(i));
+    m <<= 1;
+  }
+  x = x.length == 12 ? 'all' : x.length ? x.join(' ') : 'none'
+  this.cells.push(new Cell(this.more, 0, 'Notes', x));
+  x = [];
+  m = 1;
+  for (i = 0; i < 33; i++) {
+    if (this.ref.chords & m) x.push(JZZ.MIDI.STY.chordName(i));
+    m <<= 1;
+  }
+  x = x.length == 33 ? 'all' : x.length ? x.join(' ') : 'none'
+  this.cells.push(new Cell(this.more, 0, 'Chords', x));
+  this.cells.push(new Cell(this.more, 0, 'Source', JZZ.MIDI.STY.noteName(this.ref.chord[0]) + JZZ.MIDI.STY.chordName(this.ref.chord[1])));
+  if (this.ref.ctab) {
+    this.cells.push(new Cell(this.more, 0, 'NTR', JZZ.MIDI.STY.ntrName(this.ref.ntr)));
+    this.cells.push(new Cell(this.more, 0, 'NTT', JZZ.MIDI.STY.nttName(this.ref.ntt)));
+    this.cells.push(new Cell(this.more, 0, 'High key', JZZ.MIDI.STY.noteName(this.ref.hikey)));
+    this.cells.push(new Cell(this.more, 0, 'Low lim', noteName(this.ref.lolim)));
+    this.cells.push(new Cell(this.more, 0, 'High lim', noteName(this.ref.hilim)));
+    this.cells.push(new Cell(this.more, 0, 'RTR', JZZ.MIDI.STY.rtrName(this.ref.rtr)));
+    if (this.ref.extra) {
+      x = [];
+      for (i = 0; i < this.ref.extra.length; i++) x.push(hex(this.ref.extra[i]));
+      this.cells.push(new Cell(this.more, 0, 'Extra', x.join(' ')));
+    }
+  }
+  if (this.ref.ctb2) {
+    this.cells.push(new Cell(this.more, 0, 'Low mid', noteName(this.ref.lomid)));
+    this.cells.push(new Cell(this.more, 0, 'High mid', noteName(this.ref.himid)));
+    this.cells.push(new Cell(this.more, 0, 'L NTR', JZZ.MIDI.STY.ntrName(this.ref.ntrlo)));
+    this.cells.push(new Cell(this.more, 0, 'L NTT', JZZ.MIDI.STY.nttName(this.ref.nttlo, this.ref.ntrlo == 2 ? 'g' : 1)));
+    this.cells.push(new Cell(this.more, 0, 'L High key', JZZ.MIDI.STY.noteName(this.ref.hikeylo)));
+    this.cells.push(new Cell(this.more, 0, 'L Low lim', noteName(this.ref.lolimlo)));
+    this.cells.push(new Cell(this.more, 0, 'L High lim', noteName(this.ref.hilimlo)));
+    this.cells.push(new Cell(this.more, 0, 'L RTR', JZZ.MIDI.STY.rtrName(this.ref.rtrlo)));
+    this.cells.push(new Cell(this.more, 0, 'M NTR', JZZ.MIDI.STY.ntrName(this.ref.ntr)));
+    this.cells.push(new Cell(this.more, 0, 'M NTT', JZZ.MIDI.STY.nttName(this.ref.ntt, this.ref.ntr == 2 ? 'g' : 1)));
+    this.cells.push(new Cell(this.more, 0, 'M High key', JZZ.MIDI.STY.noteName(this.ref.hikey)));
+    this.cells.push(new Cell(this.more, 0, 'M Low lim', noteName(this.ref.lolim)));
+    this.cells.push(new Cell(this.more, 0, 'M High lim', noteName(this.ref.hilim)));
+    this.cells.push(new Cell(this.more, 0, 'M RTR', JZZ.MIDI.STY.rtrName(this.ref.rtr)));
+    this.cells.push(new Cell(this.more, 0, 'H NTR', JZZ.MIDI.STY.ntrName(this.ref.ntrhi)));
+    this.cells.push(new Cell(this.more, 0, 'H NTT', JZZ.MIDI.STY.nttName(this.ref.ntthi, this.ref.ntrhi == 2 ? 'g' : 1)));
+    this.cells.push(new Cell(this.more, 0, 'H High key', JZZ.MIDI.STY.noteName(this.ref.hikeyhi)));
+    this.cells.push(new Cell(this.more, 0, 'H Low lim', noteName(this.ref.lolimhi)));
+    this.cells.push(new Cell(this.more, 0, 'H High lim', noteName(this.ref.hilimhi)));
+    this.cells.push(new Cell(this.more, 0, 'H RTR', JZZ.MIDI.STY.rtrName(this.ref.rtrhi)));
+    x = [];
+    for (i = 0; i < this.ref.extra.length; i++) x.push(hex(this.ref.extra[i]));
+    this.cells.push(new Cell(this.more, 0, 'Extra', x.join(' ')));
+  }
+}
+function populate_otsc() {
+  var i, smf;
+  this.cells = [];
+  for (i = 0; i < this.ref.otsc.length; i++) {
+    smf = new JZZ.MIDI.SMF();
+    smf.push(this.ref.otsc[i]);
+    this.cells.push(new MidiCell(this.more, 'MTrk ' + (i + 1), smf));
+  }
+}
+function populate_fnrc() {
+  var i, x, a;
+  this.cells = [];
+  for (i = 0; i < this.ref.fnrc.length; i++) {
+    x = this.ref.fnrc[i];
+    a = [x.tsig.join('/'), x.bpm + ' bpm'];
+    if (x.genre) a.push('genre: ' + x.genre);
+    if (x.kwd1) a.push('keywords: ' + x.kwd1);
+    if (x.kwd2) a.push('keywords: ' + x.kwd2);
+    this.cells.push(new Cell(this.more, 0, x.name + '&nbsp;&nbsp;', a.join('; ')));
+  }
+}
+function noteName(n) { return JZZ.MIDI.STY.noteName(n % 12) + Math.floor(n / 12); }
+</script>
+
+</body>
+</html>

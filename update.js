@@ -7,6 +7,7 @@ const files = [
   'node_modules/jzz-midi-gear/javascript/JZZ.MIDI.Gear.js',
   'node_modules/jzz-midi-gm/javascript/JZZ.MIDI.GM.js',
   'node_modules/jzz-midi-smf/javascript/JZZ.MIDI.SMF.js',
+  'node_modules/jzz-midi-sty/javascript/JZZ.MIDI.STY.js',
   'node_modules/jzz-synth-tiny/javascript/JZZ.synth.Tiny.js'
 ];
 for (var file of files) fs.copyFileSync(file, 'javascript' + file.substr(file.lastIndexOf('/')));
