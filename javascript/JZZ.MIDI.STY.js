@@ -15,6 +15,8 @@
   /* istanbul ignore next */
   if (JZZ.MIDI.STY) return;
 
+  var _ver = '0.0.4';
+
   function STY(smf) {
     var i, j, k, s, t, x;
     if (!(smf instanceof JZZ.MIDI.SMF)) smf = new JZZ.MIDI.SMF(smf);
@@ -65,23 +67,32 @@
       if (smf[i].type == 'MHhd') this.mhhd = true;
     }
   }
+  STY.version = function() { return _ver; };
+  STY.prototype.version = STY.version;
+
+  STY.prototype.dump = function() {
+    var smf = new JZZ.MIDI.SMF();
+
+    return smf.dump();
+  };
 
   function _splitMTrk(trk) {
-    var i, t, m;
+    var i, k, t, m;
     var ttt = [];
-    var cl = 0;
     t = new JZZ.MIDI.SMF.MTrk();
     t.title = '';
+    k = 0;
     ttt.push(t);
     for (i = 0; i < trk.length; i++) {
       m = trk[i];
       if (m.ff == 6) {
-        cl = m.tt;
+        t.add(m.tt - k, JZZ.MIDI.smfEndOfTrack());
         t = new JZZ.MIDI.SMF.MTrk();
+        k = m.tt;
         t.title = m.dd;
         ttt.push(t);
       }
-      t.add(m.tt - cl, m);
+      t.add(m.tt - k, m);
     }
     return ttt;
   }
@@ -283,6 +294,36 @@
   STY.prototype.rtrName = rtrName;
   STY.partName = partName;
   STY.prototype.partName = partName;
+
+  STY.prototype.tracks = function() { return this.mtrk ? this.mtrk.slice() : []; };
+
+  STY.prototype.track = function(s) {
+    var trk, t, i, k;
+    if (s.substr(0, 4) == 'OTSc') {
+      s = s.substr(4).trim();
+      k = parseInt(s);
+      if (k == s && this.otsc) t = this.otsc[k - 1];
+      if (t) trk = new JZZ.MIDI.SMF.MTrk();
+    }
+    else {
+      t = this.trk[s];
+      if (t) trk = new JZZ.MIDI.SMF.MTrk();
+      if (s != '' && s != 'SFF1' && s != 'SFF2') trk.add(0, JZZ.MIDI.smfTempo(this.tempo));
+    }
+    if (!trk) return;
+    if (t.length) {
+      for (i = 0; i < t.length; i++) trk.add(t[i].tt, t[i]);
+    }
+  };
+
+  STY.prototype.export = function(s) {
+    var trk = this.track(s);
+    if (trk) {
+      var smf = new JZZ.MIDI.SMF(0, this.ppqn);
+      smf.push(trk);
+      return smf;
+    }
+  }
 
   JZZ.MIDI.STY = STY;
 });
