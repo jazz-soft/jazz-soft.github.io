@@ -15,18 +15,34 @@
   /* istanbul ignore next */
   if (JZZ.MIDI.STY) return;
 
-  var _ver = '0.0.4';
+  var _ver = '0.0.8';
 
   function STY(smf) {
+    var self = this;
+    if (!(self instanceof STY)) {
+      self = new STY();
+    }
+    self.tsig = [4, 4];
+    self.ppqn = 96;
+    self.tempo = 500000; // 120 BPM
+    self.bpm = 120;
+    self.name = 'Untitled';
+    self.mtrk = [];
+    self.trk = {};
+    if (smf) self.load(smf);
+    return self;
+  }
+
+  STY.prototype.load = function(smf) {
     var i, j, k, s, t, x;
     if (!(smf instanceof JZZ.MIDI.SMF)) smf = new JZZ.MIDI.SMF(smf);
     this.ppqn = smf.ppqn;
+    this.mtrk = [];
+    this.trk = {};
     for (i = 0; i < smf.length; i++) {
       if (smf[i].type == 'MTrk') {
-        if (!this.mtrk) {
+        if (!this.mtrk.length) {
           x = _splitMTrk(smf[i]);
-          this.mtrk = [];
-          this.trk = {};
           for (j = 0; j < x.length; j++) {
             t = x[j];
             s = t.title;
@@ -37,12 +53,15 @@
                   this.bpm = Math.round(60000000 / this.tempo);
                 }
                 else if (t[k].isTimeSignature()) {
-                  this.tsig = t[k].getTimeSignature().join('/');
+                  this.tsig = t[k].getTimeSignature4();
+                }
+                else if (t[k].isCopyright()) {
+                  this.copyright = t[k].getText();
                 }
               }
             }
             else if (s == 'SFF1' || s == 'SFF2') {
-              for (k = 0; k < t.length; k++) if (t[k].ff == 3) this.name = t[k].dd;
+              for (k = 0; k < t.length; k++) if (t[k].isSeqName()) this.name = t[k].getText();
             }
             else this.mtrk.push(s);
             this.trk[s] = t;
@@ -64,15 +83,60 @@
           this.fnrc = _splitFNRc(smf[i].data);
         }
       }
-      if (smf[i].type == 'MHhd') this.mhhd = true;
+      if (smf[i].type == 'MHhd') this.mhhd = smf[i].data;
     }
   }
   STY.version = function() { return _ver; };
   STY.prototype.version = STY.version;
 
   STY.prototype.dump = function() {
-    var smf = new JZZ.MIDI.SMF();
-
+    var smf = new JZZ.MIDI.SMF(0, this.ppqn);
+    var trk = new JZZ.MIDI.SMF.MTrk();
+    smf.push(trk);
+    var i, j, t, tt, m;
+    var tr = this.trk[''];
+    if (!tr) {
+      tr = new JZZ.MIDI.SMF.MTrk();
+      tr.smfTimeSignature(1, 1);
+      tr.smfTempo(this.tempo);
+      if (this.copyright) tr.smfCopyright(this.copyright);
+    }
+    for (i = 0; i < tr.length; i++) {
+      m = tr[i];
+      if (m.isCopyright()) { if (this.copyright) trk.smfCopyright(this.copyright); }
+      else if (m.isTempo()) trk.smfTempo(this.tempo);
+      else if (m.isTimeSignature()) trk.smfTimeSignature(this.tsig[0], this.tsig[1], this.tsig[2], this.tsig[3]);
+      else trk.add(0, m);
+    }
+    tr = this.trk['SFF1'] || this.trk['SFF2'];
+    if (!tr) {
+      tr = new JZZ.MIDI.SMF.MTrk();
+      tr.smfMarker('SFF1');
+      tr.smfSeqName(this.name);
+      tr.send([0xf0, 0x43, 0x76, 0x1a, 0x10, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0xf7]);
+      tr.send([0xf0, 0x43, 0x73, 0x39, 0x11, 0x00, 0x46, 0x00, 0xf7]);
+      tr.send([0xf0, 0x43, 0x73, 0x01, 0x51, 0x05, 0x00, 0x01, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf7]);
+      tr.send([0xf0, 0x43, 0x73, 0x01, 0x51, 0x05, 0x00, 0x02, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf7]);
+    }
+    for (i = 0; i < tr.length; i++) {
+      m = tr[i];
+      if (m.isSeqName()) trk.smfSeqName(this.name);
+      else trk.add(0, m);
+    }
+    t = 0;
+    for (i = 0; i < this.mtrk.length; i++) {
+      tr = this.trk[this.mtrk[i]];
+      for (j = 0; j < tr.length; j++) {
+        m = tr[j];
+        tt = m.tt + t;
+        trk.add(tt, m);
+      }
+      t = tt;
+    }
+    if (this.casm) smf.push(new JZZ.MIDI.SMF.Chunk('CASM', _dumpCASM(this.casm)));
+    if (this.otsc) smf.push(new JZZ.MIDI.SMF.Chunk('OTSc', _dumpOTSc(this.otsc)));
+    if (this.fnrc) smf.push(new JZZ.MIDI.SMF.Chunk('FNRc', _dumpFNRc(this.fnrc)));
+    if (this.mhhd) smf.push(new JZZ.MIDI.SMF.Chunk('MHhd', this.mhhd));
     return smf.dump();
   };
 
@@ -85,7 +149,7 @@
     ttt.push(t);
     for (i = 0; i < trk.length; i++) {
       m = trk[i];
-      if (m.ff == 6) {
+      if (m.isMarker()) {
         t.add(m.tt - k, JZZ.MIDI.smfEndOfTrack());
         t = new JZZ.MIDI.SMF.MTrk();
         k = m.tt;
@@ -111,6 +175,18 @@
       p += len;
     }
     return casm;
+  }
+  function _dumpCASM(casm) {
+    var i, j, s, x;
+    var dump = '';
+    for (i = 0; i < casm.length; i++) {
+      x = casm[i];
+      s = _pack('Sdec', x.sdec);
+      if (x.ctab) for (j = 0; j < x.ctab.length; j++) s += _pack('Ctab', _dumpCtab(x.ctab[j]));
+      if (x.ctb2) for (j = 0; j < x.ctb2.length; j++) s += _pack('Ctb2', _dumpCtb2(x.ctb2[j]));
+      dump += _pack('CSEG', s);
+    }
+    return dump;
   }
   function _splitCSEG(s) {
     var t, len, x;
@@ -153,6 +229,20 @@
     ctb.chord = [s.charCodeAt(18), s.charCodeAt(19)];
     return ctb;
   }
+  function _dumpCtb(ctb) {
+    return [
+      String.fromCharCode(ctb.src),
+      (ctb.name + '\x00\x00\x00\x00\x00\x00\x00\x00').substr(0, 8),
+      String.fromCharCode(ctb.dest),
+      ctb.editable ? '\x01' : '\x00',
+      String.fromCharCode(ctb.notes >> 8), String.fromCharCode(ctb.notes & 255),
+      String.fromCharCode((ctb.chords >> 32) & 255), String.fromCharCode((ctb.chords >> 24) & 255),
+      String.fromCharCode((ctb.chords >> 16) & 255), String.fromCharCode((ctb.chords >> 8) & 255),
+      String.fromCharCode(ctb.chords & 255),
+      String.fromCharCode(ctb.chord[0] & 255),
+      String.fromCharCode(ctb.chord[1] & 255)
+    ].join('');
+  }
   function _splitCtab(s) {
     var ctb = _splitCtb(s);
     ctb.ctab = true;
@@ -167,6 +257,19 @@
       for (var i = 26; i < s.length; i++) ctb.extra.push(s.charCodeAt(i));
     }
     return ctb;
+  }
+  function _dumpCtab(ctb) {
+    var dump = [
+      _dumpCtb(ctb),
+      String.fromCharCode(ctb.ntr),
+      String.fromCharCode(ctb.ntt),
+      String.fromCharCode(ctb.hikey),
+      String.fromCharCode(ctb.lolim),
+      String.fromCharCode(ctb.hilim),
+      String.fromCharCode(ctb.rtr)
+    ];
+    if (ctb.extra) for (var i = 0; i < ctb.extra.length; i++) dump.push(String.fromCharCode(ctb.extra[i]));
+    return dump.join('');
   }
   function _splitCtb2(s) {
     var ctb = _splitCtb(s);
@@ -195,6 +298,33 @@
     for (var i = 40; i < s.length; i++) ctb.extra.push(s.charCodeAt(i));
     return ctb;
   }
+  function _dumpCtb2(ctb) {
+    var dump = [
+      _dumpCtb(ctb),
+      String.fromCharCode(ctb.lomid),
+      String.fromCharCode(ctb.himid),
+      String.fromCharCode(ctb.ntrlo),
+      String.fromCharCode(ctb.nttlo),
+      String.fromCharCode(ctb.hikeylo),
+      String.fromCharCode(ctb.lolimlo),
+      String.fromCharCode(ctb.hilimlo),
+      String.fromCharCode(ctb.rtrlo),
+      String.fromCharCode(ctb.ntr),
+      String.fromCharCode(ctb.ntt),
+      String.fromCharCode(ctb.hikey),
+      String.fromCharCode(ctb.lolim),
+      String.fromCharCode(ctb.hilim),
+      String.fromCharCode(ctb.rtr),
+      String.fromCharCode(ctb.ntrhi),
+      String.fromCharCode(ctb.ntthi),
+      String.fromCharCode(ctb.hikeyhi),
+      String.fromCharCode(ctb.lolimhi),
+      String.fromCharCode(ctb.hilimhi),
+      String.fromCharCode(ctb.rtrhi)
+    ];
+    if (ctb.extra) for (var i = 0; i < ctb.extra.length; i++) dump.push(String.fromCharCode(ctb.extra[i]));
+    return dump.join('');
+  }
   function _splitCntt(s) {
     var cntt = {};
     cntt.src = s.charCodeAt(0);
@@ -217,6 +347,11 @@
     }
     return otsc;
   }
+  function _dumpOTSc(otsc) {
+    var dump = '';
+    for (var i = 0; i < otsc.length; i++) dump += otsc[i].dump();
+    return dump;
+  }
   function _splitFNRc(s) {
     var t, len, fnrp;
     var fnrc = [];
@@ -232,6 +367,25 @@
       p += len;
     }
     return fnrc;
+  }
+  function _pack(t, s) {
+    s = s || '';
+    return t + JZZ.MIDI.SMF.num4(s.length) + s;
+  }
+  function _dumpFNRc(frnc) {
+    var i, f, s;
+    var dump = '';
+    for (i = 0; i < frnc.length; i++) {
+      f = frnc[i];
+      s = [
+        JZZ.MIDI.SMF.num4(f.tempo).substr(1),
+        String.fromCharCode(f.tsig[0]), String.fromCharCode(f.tsig[1]),
+        _pack('Mnam', f.name), _pack('Gnam', f.genre),
+        _pack('Kwd1', f.kwd1), _pack('Kwd2', f.kwd2)
+      ].join('');
+      dump += _pack('FNRP', s);
+    }
+    return dump;
   }
   function _splitFNRP(s) {
     var t, len;
@@ -314,6 +468,7 @@
     if (t.length) {
       for (i = 0; i < t.length; i++) trk.add(t[i].tt, t[i]);
     }
+    return trk;
   };
 
   STY.prototype.export = function(s) {
