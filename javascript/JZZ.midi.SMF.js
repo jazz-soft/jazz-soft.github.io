@@ -15,7 +15,7 @@
   /* istanbul ignore next */
   if (JZZ.MIDI.SMF) return;
 
-  var _ver = '1.7.6';
+  var _ver = '1.8.2';
 
   var _now = JZZ.lib.now;
   function _error(s) { throw new Error(s); }
@@ -89,6 +89,7 @@
       if (typeof arguments[0] == 'string' && arguments[0] != '0' && arguments[0] != '1' && arguments[0] != '2') {
         data = arguments[0];
       }
+      if (data == '') _error('Empty file');
       if (data) {
         self.load(data);
         return self;
@@ -153,39 +154,38 @@
       off = 20;
       s = s.substr(20, s.charCodeAt(16) + s.charCodeAt(17) * 0x100 + s.charCodeAt(18) * 0x10000 + s.charCodeAt(19) * 0x1000000);
     }
-    this.loadSMF(s, off);
+    _loadSMF(this, s, off);
   };
 
   var MThd0006 = 'MThd' + String.fromCharCode(0) + String.fromCharCode(0) + String.fromCharCode(0) + String.fromCharCode(6);
-  SMF.prototype.loadSMF = function(s, off) {
-    if (!s.length) _error('Empty file');
+  function _loadSMF(self, s, off) {
     if (s.substr(0, 8) != MThd0006) {
       var z = s.indexOf(MThd0006);
       if (z != -1) {
         s = s.substr(z);
-        this._complain(off, 'Extra leading characters', z);
+        self._complain(off, 'Extra leading characters', z);
         off += z;
       }
       else _error('Not a MIDI file');
     }
-    this._off = off;
-    this.type = s.charCodeAt(8) * 16 + s.charCodeAt(9);
-    this._off_type = off + 8;
-    this.ntrk = s.charCodeAt(10) * 16 + s.charCodeAt(11);
-    this._off_ntrk = off + 10;
+    self._off = off;
+    self.type = s.charCodeAt(8) * 16 + s.charCodeAt(9);
+    self._off_type = off + 8;
+    self.ntrk = s.charCodeAt(10) * 16 + s.charCodeAt(11);
+    self._off_ntrk = off + 10;
     if (s.charCodeAt(12) > 0x7f) {
-      this.fps = 0x100 - s.charCodeAt(12);
-      this.ppf = s.charCodeAt(13);
-      this._off_fps = off + 12;
-      this._off_ppf = off + 13;
+      self.fps = 0x100 - s.charCodeAt(12);
+      self.ppf = s.charCodeAt(13);
+      self._off_fps = off + 12;
+      self._off_ppf = off + 13;
     }
     else{
-      this.ppqn = s.charCodeAt(12) * 256 + s.charCodeAt(13);
-      this._off_ppqn = off + 12;
+      self.ppqn = s.charCodeAt(12) * 256 + s.charCodeAt(13);
+      self._off_ppqn = off + 12;
     }
-    if (this.type > 2) this._complain(8 + off, 'Invalid MIDI file type', this.type);
-    else if (this.type == 0 && this.ntrk > 1) this._complain(10 + off, 'Wrong number of tracks for the type 0 MIDI file', this.ntrk);
-    if (!this.ppf && !this.ppqn) _error('Invalid MIDI header');
+    if (self.type > 2) self._complain(8 + off, 'Invalid MIDI file type', self.type);
+    else if (self.type == 0 && self.ntrk > 1) self._complain(10 + off, 'Wrong number of tracks for the type 0 MIDI file', self.ntrk);
+    if (!self.ppf && !self.ppqn) _error('Invalid MIDI header');
     var n = 0;
     var p = 14;
     while (p < s.length - 8) {
@@ -195,23 +195,23 @@
       var len = (s.charCodeAt(p + 4) << 24) + (s.charCodeAt(p + 5) << 16) + (s.charCodeAt(p + 6) << 8) + s.charCodeAt(p + 7);
       if (len <= 0) { // broken file
         len = s.length - p - 8;
-        this._complain(p + off + 4, 'Invalid track length', s.charCodeAt(p + 4) + '/' + s.charCodeAt(p + 5) + '/' + s.charCodeAt(p + 6) + '/' + s.charCodeAt(p + 7));
+        self._complain(p + off + 4, 'Invalid track length', s.charCodeAt(p + 4) + '/' + s.charCodeAt(p + 5) + '/' + s.charCodeAt(p + 6) + '/' + s.charCodeAt(p + 7));
       }
       p += 8;
       var data = s.substr(p, len);
-      this.push(new Chunk(type, data, offset));
-      if (type == 'MThd') this._complain(offset, 'Unexpected chunk type', 'MThd');
+      self.push(new Chunk(type, data, offset));
+      if (type == 'MThd') self._complain(offset, 'Unexpected chunk type', 'MThd');
       p += len;
     }
-    if (n != this.ntrk) {
-      this._complain(off + 10, 'Incorrect number of tracks', this.ntrk);
-      this.ntrk = n;
+    if (n != self.ntrk) {
+      self._complain(off + 10, 'Incorrect number of tracks', self.ntrk);
+      self.ntrk = n;
     }
-    if (!this.ntrk)  _error('No MIDI tracks');
-    if (!this.type && this.ntrk > 1 || this.type > 2)  this.type = 1;
-    if (p < s.length) this._complain(off + p, 'Extra trailing characters', s.length - p);
-    if (p > s.length) this._complain(off + s.length, 'Incomplete data', p - s.length);
-  };
+    if (!self.ntrk)  _error('No MIDI tracks');
+    if (!self.type && self.ntrk > 1 || self.type > 2)  self.type = 1;
+    if (p < s.length) self._complain(off + p, 'Extra trailing characters', s.length - p);
+    if (p > s.length) self._complain(off + s.length, 'Incomplete data', p - s.length);
+  }
 
   function Warn(obj) {
     if (!(this instanceof Warn)) return new Warn(obj);
@@ -796,7 +796,6 @@
     return this;
   };
 
-  MTrk.prototype._ch = undefined;
   MTrk.prototype._sxid = 0x7f;
   MTrk.prototype._image = function() {
     var F = function() {}; F.prototype = this._orig;
@@ -866,6 +865,7 @@
     self.playing = false;
     self._loop = 0;
     self._data = [];
+    self._hdr = [];
     self._pos = 0;
     self._tick = (function(x) { return function(){ x.tick(); }; })(self);
     for (var k in Player.prototype) if (Player.prototype.hasOwnProperty(k)) self[k] = Player.prototype[k];
@@ -884,6 +884,7 @@
     this._pos = 0;
     this._p0 = 0;
     this._t0 = _now();
+    this._list = this._hdr;
     this.tick();
   };
   Player.prototype.stop = function() {
@@ -916,10 +917,9 @@
   Player.prototype.filter = function(f) {
     this._filter = f instanceof Function ? f : _filter;
   };
-  function _div(s) { return (s.charCodeAt(0) << 16) + (s.charCodeAt(1) << 8) + s.charCodeAt(2); }
   Player.prototype._receive = function(e) {
-    if (e.ff == 0x51 && this.ppqn) {
-      this._mul = this.ppqn * 1000.0 / _div(e.dd);
+    if (e.isTempo() && this.ppqn) {
+      this._mul = this.ppqn * (e.isMidi2 ? 100000.0 : 1000.0) / (e.getTempo() || 1);
       this.mul = this._mul * this._speed;
       this._t0 = _now();
       this._p0 = this._pos;
@@ -930,20 +930,28 @@
     var t = _now();
     var e;
     this._pos = this._p0 + (t - this._t0) * this.mul;
-    for(; this._ptr < this._data.length; this._ptr++) {
-      e = this._data[this._ptr];
+    for(; this._ptr < this._list.length; this._ptr++) {
+      e = this._list[this._ptr];
       if (e.tt > this._pos) break;
       this._filter(e);
     }
-    if (this._ptr >= this._data.length) {
-      if (this._loop && this._loop != -1) this._loop--;
-      if (this._loop) {
+    if (this._ptr >= this._list.length) {
+      if (this._list == this._hdr) {
+        this._list = this._data;
         this._ptr = 0;
         this._p0 = 0;
         this._t0 = t;
       }
-      else this.stop();
-      this.onEnd();
+      else {
+        if (this._loop && this._loop != -1) this._loop--;
+        if (this._loop) {
+          this._ptr = 0;
+          this._p0 = 0;
+          this._t0 = t;
+        }
+        else this.stop();
+        this.onEnd();
+      }
     }
     if (this.event == 'stop') {
       this.playing = false;
@@ -985,15 +993,19 @@
     if (this.ppqn) {
       this._mul = this.ppqn / 500.0; // 120 bpm
       m = this._mul;
+      for (i = 0; i < this._hdr.length; i++) {
+        e = this._hdr[i];
+        if (e.isTempo()) m = this.ppqn * 100000.0 / (e.getTempo() || 1);
+      }
       t = 0;
       this._durationMS = 0;
       this._ttt.push({ t: 0, m: m, ms: 0 });
       for (i = 0; i < this._data.length; i++) {
         e = this._data[i];
-        if (e.ff == 0x51) {
+        if (e.isTempo()) {
           this._durationMS += (e.tt - t) / m;
           t = e.tt;
-          m = this.ppqn * 1000.0 / _div(e.dd);
+          m = this.ppqn * (e.isMidi2 ? 100000.0 : 1000.0) / (e.getTempo() || 1);
           this._ttt.push({ t: t, m: m, ms: this._durationMS });
         }
       }
@@ -1057,11 +1069,17 @@
     if (this.playing) this.sndOff();
   };
   Player.prototype._toPos = function() {
-    for(this._ptr = 0; this._ptr < this._data.length; this._ptr++) {
-      var e = this._data[this._ptr];
-      if (e.tt >= this._pos) break;
-      if (e.ff == 0x51 && this.ppqn) this._mul = this.ppqn * 1000.0 / _div(e.dd);
+    var i, e;
+    for(i = 0; i < this._hdr.length; i++) {
+      e = this._hdr[i];
+      if (e.isTempo()) this._mul = this.ppqn * 100000.0 / (e.getTempo() || 1);
     }
+    for(this._ptr = 0; this._ptr < this._data.length; this._ptr++) {
+      e = this._data[this._ptr];
+      if (e.tt >= this._pos) break;
+      if (e.isTempo() && this.ppqn) this._mul = this.ppqn * (e.isMidi2 ? 100000.0 : 1000.0) / (e.getTempo() || 1);
+    }
+    this._list = this._data;
     this.mul = this._mul * this._speed;
     this._t0 = _now();
     this._p0 = this._pos;
@@ -1083,7 +1101,7 @@
   function _not_a_syx() { _error('Not a SYX file'); }
 
   function SYX(arg) {
-    var self = this instanceof SYX ? this : self = new SYX();
+    var self = this instanceof SYX ? this : new SYX();
     self._orig = self;
     if (typeof arg != 'undefined') {
       if (arg instanceof SMF) {
@@ -1120,6 +1138,7 @@
       var msg = [];
       var i = 0;
       var off = 0;
+      if (!arg.length) _error('Empty file');
       while (i < arg.length) {
         if (arg.charCodeAt(i) != 0xf0) _not_a_syx();
         while (i < arg.length) {
@@ -1199,14 +1218,13 @@
       e.tt = 0;
       pl._data.push(e);
     }
-    pl._type = 0;
+    pl._type = 'syx';
     pl._tracks = 1;
     pl._timing();
     pl.sndOff = function() {};
     return pl;
   };
 
-  SYX.prototype._ch = undefined;
   SYX.prototype._sxid = 0x7f;
   SYX.prototype._image = function() {
     var F = function() {}; F.prototype = this._orig;
@@ -1241,4 +1259,304 @@
   JZZ.lib.copyMidiHelpers(SYX);
 
   JZZ.MIDI.SYX = SYX;
+
+  function Clip(arg) {
+    var self = this instanceof Clip ? this : new Clip();
+    self._orig = self;
+    self._tick = 0;
+    self.ppqn = 96;
+    if (typeof arg != 'undefined') {
+      if (arg instanceof Clip) {
+        _copyClip(self, arg);
+        return self;
+      }
+      try {
+        if (arg instanceof ArrayBuffer) {
+          arg = _u8a2s(new Uint8Array(arg));
+        }
+      }
+      catch (err) {/**/}
+      try {
+        if (arg instanceof Uint8Array || arg instanceof Int8Array) {
+          arg = _u8a2s(new Uint8Array(arg));
+        }
+      }
+      catch (err) {/**/}
+      try {
+        /* istanbul ignore next */
+        if (arg instanceof Buffer) {
+          arg = arg.toString('binary');
+        }
+      }
+      catch (err) {/**/}
+      if (typeof arg != 'string') {
+        arg = String.fromCharCode.apply(null, arg);
+      }
+      _loadClip(self, arg, 0);
+      return self;
+    }
+    if (!self.header) self.header = new ClipHdr();
+    if (!self.length) {
+      var msg = JZZ.UMP.umpEndClip();
+      msg.tt = 0;
+      self.push(msg);
+    }
+    return self;
+  }
+  Clip.version = function() { return _ver; };
+  Clip.prototype = [];
+  Clip.prototype.constructor = Clip;
+  Clip.prototype._sxid = 0x7f;
+  var SMF2CLIP = 'SMF2CLIP';
+
+  Clip.prototype._image = function() {
+    var F = function() {}; F.prototype = this._orig;
+    var img = new F();
+    img._gr = this._gr;
+    img._ch = this._ch;
+    img._sxid = this._sxid;
+    img._tick = this._tick;
+    return img;
+  };
+  Clip.prototype.send = function(msg) { return this.add(this._tick, msg); };
+  Clip.prototype.tick = function(t) {
+    if (t != parseInt(t) || t < 0) throw RangeError('Bad tick value: ' + t);
+    if (!t) return this;
+    var img = this._image();
+    img._tick = this._tick + t;
+    return img;
+  };
+  Clip.prototype.add = function(t, msg) {
+    t = parseInt(t);
+    if(isNaN(t) || t < 0) _error('Invalid parameter');
+    msg = JZZ.UMP(msg);
+    var end = this._orig[this._orig.length - 1];
+    if (end.tt < t) end.tt = t;
+    if (msg.isStartClip() || msg.isEndClip()) return this;
+    if (msg.isDelta()) return this.tick(msg.getDelta());
+    msg.tt = t;
+    var i;
+    for (i = 0; i < this._orig.length - 1; i++) if (this._orig[i].tt > t) break;
+    this._orig.splice(i, 0, msg);
+    return this;
+  };
+  Clip.prototype.sxId = function(id) {
+    if (typeof id == 'undefined') id = Clip.prototype._sxid;
+    if (id == this._sxid) return this;
+    if (id != parseInt(id) || id < 0 || id > 0x7f) throw RangeError('Bad MIDI value: ' + id);
+    var img = this._image();
+    img._sxid = id;
+    return img;
+  };
+  Clip.prototype.gr = function(g) {
+    if (g == this._gr || typeof g == 'undefined' && typeof this._gr == 'undefined') return this;
+    if (typeof g != 'undefined') {
+      if (g != parseInt(g) || g < 0 || g > 15) throw RangeError('Bad channel value: ' + g  + ' (must be from 0 to 15)');
+    }
+    var img = this._image();
+    img._gr = g;
+    return img;
+  };
+  Clip.prototype.ch = function(c) {
+    if (c == this._ch || typeof c == 'undefined' && typeof this._ch == 'undefined') return this;
+    if (typeof c != 'undefined') {
+      if (c != parseInt(c) || c < 0 || c > 15) throw RangeError('Bad channel value: ' + c  + ' (must be from 0 to 15)');
+    }
+    var img = this._image();
+    img._ch = c;
+    return img;
+  };
+
+  function ClipHdr() {
+    this._orig = this;
+    this._tick = 0;
+  }
+  ClipHdr.prototype = [];
+  ClipHdr.prototype.constructor = ClipHdr;
+  ClipHdr.prototype._image = Clip.prototype._image;
+  ClipHdr.prototype.send = Clip.prototype.send;
+  ClipHdr.prototype.tick = Clip.prototype.tick;
+  ClipHdr.prototype.gr = Clip.prototype.gr;
+  ClipHdr.prototype.ch = Clip.prototype.ch;
+  ClipHdr.prototype.sxId = Clip.prototype.sxId;
+  ClipHdr.prototype.add = function(t, msg) {
+    t = parseInt(t);
+    if(isNaN(t) || t < 0) _error('Invalid parameter');
+    msg = JZZ.UMP(msg);
+    if (msg.isStartClip() || msg.isEndClip()) return this;
+    if (msg.isDelta()) return this.tick(msg.getDelta());
+    msg.tt = t;
+    var i;
+    for (i = 0; i < this._orig.length; i++) if (this._orig[i].tt > t) break;
+    this._orig.splice(i, 0, msg);
+    return this;
+  };
+
+  function _copyClip(clip, x) {
+    var i, m;
+    clip.length = 0;
+    clip.header = new ClipHdr();
+    clip.ppqn = x.ppqn;
+    for (i = 0; i < x.header.length; i++) {
+      m = new JZZ.UMP(x.header[i]);
+      m.tt = x.header[i].tt;
+      clip.header.push(m);
+    }
+    for (i = 0; i < x.length; i++) {
+      m = new JZZ.UMP(x[i]);
+      m.tt = x[i].tt;
+      clip.push(m);
+    }
+  }
+  function _loadClip(clip, s, off) {
+    if (!s.length) _error('Empty clip');
+    if (s.substr(0, 8) != SMF2CLIP) {
+      var z = s.indexOf(SMF2CLIP);
+      if (z != -1) {
+        s = s.substr(z);
+        clip._complain(off, 'Extra leading characters', z);
+        off += z;
+      }
+      else _error('Not a clip');
+    }
+    off += 8;
+    var a, i, m, t, len, prev;
+    clip.length = 0;
+    clip.header = new ClipHdr();
+    clip.ppqn = -1;
+    var inHdr = true;
+    var ended = false;
+    var tt = 0;
+    while (off < s.length) {
+      t = s.charCodeAt(off) >> 4;
+      len = [4, 4, 4, 8, 8, 16, 4, 4, 8, 8, 8, 12, 12, 16, 16, 16][t];
+      a = [];
+      for (i = 0; i < len; i++) a.push(s.charCodeAt(off + i));
+      prev = m;
+      m = JZZ.UMP(a);
+      if (m.isDelta()) {
+        if (prev && prev.isDelta())  clip._complain(off, 'Consequential Delta Ticks message');
+        tt += m.getDelta();
+      }
+      else {
+        m.tt = tt;
+        if (inHdr) {
+          if (m.isStartClip()) {
+            tt = 0;
+            inHdr = false;
+          }
+          else if (m.isTicksPQN()) {
+            if (clip.ppqn != -1) clip._complain(off, 'Multiple Ticks PQN message');
+            clip.ppqn = m.getTicksPQN();
+            if (!clip.ppqn) {
+              clip._complain(off, 'Bad Ticks PQN value: 0');
+              clip.ppqn = 96;
+            }
+          }
+          else if (m.isEndClip()) {
+            clip._complain(off, 'Unexpected End of Clip message');
+          }
+          else clip.header.push(m);
+        }
+        else {
+          if (m.isStartClip()) {
+            clip._complain(off, 'Repeated Start of Clip message');
+          }
+          else if (m.isEndClip()) {
+            if (ended) clip._complain(off, 'Repeated End of Clip message');
+            ended = true;
+          }
+          else clip.push(m);
+        }
+      }
+      off += len;
+    }
+    m = JZZ.UMP.umpEndClip();
+    m.tt = tt;
+    clip.push(m);
+    if (clip.ppqn == -1) {
+      clip._complain(off, 'Missing Ticks PQN message');
+      clip.ppqn = 96;
+    }
+  }
+  Clip.prototype._complain = function(off, msg, data, tick) {
+    if (!this._warn) this._warn = [];
+    var w = { off: off, msg: msg, data: data };
+    if (typeof tick != 'undefined') w.tick = tick;
+    this._warn.push(w);
+  };
+
+  Clip.prototype.dump = function() {
+    var i, tt;
+    var a = [SMF2CLIP];
+    a.push(JZZ.UMP.umpDelta(0).dump());
+    a.push(JZZ.UMP.umpTicksPQN(this.ppqn).dump());
+    tt = 0;
+    for (i = 0; i < this.header.length; i++) {
+      a.push(JZZ.UMP.umpDelta(this.header[i].tt - tt).dump());
+      a.push(this.header[i].dump());
+      tt = this.header[i].tt;
+    }
+    a.push(JZZ.UMP.umpDelta(0).dump());
+    a.push(JZZ.UMP.umpStartClip().dump());
+    tt = 0;
+    for (i = 0; i < this.length; i++) {
+      a.push(JZZ.UMP.umpDelta(this[i].tt - tt).dump());
+      a.push(this[i].dump());
+      tt = this[i].tt;
+    }
+    return a.join('');
+  };
+  Clip.prototype.toBuffer = function() {
+    return Buffer.from(this.dump(), 'binary');
+  };
+  Clip.prototype.toUint8Array = function() {
+    var str = this.dump();
+    var buf = new ArrayBuffer(str.length);
+    var arr = new Uint8Array(buf);
+    for (var i = 0; i < str.length; i++) arr[i] = str.charCodeAt(i);
+    return arr;
+  };
+  Clip.prototype.toArrayBuffer = function() {
+    return this.toUint8Array().buffer;
+  };
+  Clip.prototype.toInt8Array = function() {
+    return new Int8Array(this.toArrayBuffer());
+  };
+  Clip.prototype.toString = function() {
+    var i;
+    var a = [SMF2CLIP, 'Header'];
+    a.push('  0: ' + JZZ.UMP.umpTicksPQN(this.ppqn));
+    for (i = 0; i < this.header.length; i++) a.push('  ' + this.header[i].tt + ': ' + this.header[i]);
+    a.push('Data', '  0: ' + JZZ.UMP.umpStartClip());
+    for (i = 0; i < this.length; i++) a.push('  ' + this[i].tt + ': ' + this[i]);
+    return a.join('\n');
+  };
+  Clip.prototype.annotate = function() {
+    return this;
+  };
+  Clip.prototype.player = function() {
+    var pl = new Player();
+    pl.ppqn = this.ppqn;
+    var i, e;
+    for (i = 0; i < this.header.length; i++) {
+      e = JZZ.MIDI2(this.header[i]);
+      pl._hdr.push(e);
+    }
+    for (i = 0; i < this.length; i++) {
+      e = JZZ.MIDI2(this[i]);
+      pl._data.push(e);
+    }
+    pl._type = 'clip';
+    pl._tracks = 1;
+    pl._timing();
+    pl.sndOff = function() {};
+    return pl;
+  };
+
+  JZZ.lib.copyMidi2Helpers(Clip);
+  JZZ.lib.copyMidi2Helpers(ClipHdr);
+
+  JZZ.MIDI.Clip = Clip;
+
 });

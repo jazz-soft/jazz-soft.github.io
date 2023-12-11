@@ -19,6 +19,77 @@
   function nop() {}
   var _noBtn = { on: nop, off: nop, disable: nop, title: nop, div: {} };
 
+  var theme = {
+    container: {
+      backgroundColor: '#888',
+      borderRadius: '0px',
+      borderWidth: '1px'
+    },
+    lbl: {
+      color: '#aaa',
+      fontSize: '12px',
+      fontFamily: 'Arial, Helvetica, sans-serif'
+    },
+    btn: {
+      borderRadius: '0px',
+      backgroundColor: {
+        on: '#ddd',
+        off: '#aaa',
+        disable: '#888'
+      },
+      borderColor: {
+        on: '#ccc',
+        off: '#ccc',
+        disable: '#aaa'
+      },
+      svgFill: {
+        on: '#000',
+        off: '#000',
+        disable: '#555'
+      },
+      close: {
+        borderRadius: '0px',
+        backgroundColor: '#f44'
+      }
+    },
+    rail: {
+      borderRadius: '2px',
+      borderWidth: '1px',
+      backgroundColor: {
+        enable: '#ccc',
+        disable: '#888'
+      },
+      borderColor: {
+        enable: '#ccc',
+        disable: '#aaa'
+      }
+    },
+    caret: {
+      borderRadius: '6px',
+      borderWidth: '1px',
+      backgroundColor: {
+        mouseDown: '#ddd',
+        mouseUp: '#aaa',
+        enable: '#aaa',
+        disable: '#888'
+      },
+      borderColor: {
+        enable: '#ccc',
+        disable: '#aaa'
+      }
+    },
+    svg: {
+      play: '<svg fill="#555" height="18" viewBox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg"><path d="M8 5v14l11-7z"/><path d="M0 0h24v24H0z" fill="none"/></svg>',
+      pause: '<svg fill="#555" height="18" viewBox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/><path d="M0 0h24v24H0z" fill="none"/></svg>',
+      stop: '<svg fill="#555" height="18" viewBox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M6 6h12v12H6z"/></svg>',
+      loop: '<svg fill="#555" height="18" viewBox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>',
+      more: '<svg fill="#555" height="18" viewBox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M12 3v9.28c-.47-.17-.97-.28-1.5-.28C8.01 12 6 14.01 6 16.5S8.01 21 10.5 21c2.31 0 4.2-1.75 4.45-4H15V6h4V3h-7z"/></svg>',
+      open: '<svg fill="#555" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0V0z"/><path d="M10 4H2v16h20V6H12l-2-2z"/></svg>',
+      link: '<svg fill="#555" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/><path fill="none" d="M0 0h24v24H0z"/></svg>',
+      close: '<svg stroke="#ff8" xmlns="http://www.w3.org/2000/svg" width="7" height="7" viewBox="0 0 7 7"><line x1="1" y1="1" x2="6" y2="6"/><line x1="1" y1="6" x2="6" y2="1"/></svg>'
+    }
+  };
+  
   function Btn(html) {
     this.div = document.createElement('div');
     this.div.style.display = 'inline-block';
@@ -27,10 +98,11 @@
     this.div.style.top = '8px';
     this.div.style.margin = '0';
     this.div.style.padding = '2px';
+    this.div.style.borderRadius = theme.btn.borderRadius;
     this.div.style.borderStyle = 'solid';
-    this.div.style.borderWidth = '1px';
-    this.div.style.borderColor = '#aaa';
-    this.div.style.backgroundColor = '#888';
+    this.div.style.borderWidth = theme.container.borderWidth;
+    this.div.style.borderColor = theme.btn.borderColor.disable;
+    this.div.style.backgroundColor = theme.btn.backgroundColor.disable;
     this.div.style.lineHeight = '0';
     this.div.style.lineSpasing = '0';
     this.div.style.width = '18px';
@@ -38,29 +110,21 @@
     this.div.innerHTML = html;
   }
   Btn.prototype.on = function() {
-    this.div.style.backgroundColor = '#ddd';
-    this.div.style.borderColor = '#ccc';
-    this.div.firstChild.style.fill = '#000';
+    this.div.style.backgroundColor = theme.btn.backgroundColor.on;
+    this.div.style.borderColor = theme.btn.borderColor.on;
+    this.div.firstChild.style.fill = theme.btn.svgFill.on;
   };
   Btn.prototype.off = function() {
-    this.div.style.backgroundColor = '#aaa';
-    this.div.style.borderColor = '#ccc';
-    this.div.firstChild.style.fill = '#000';
+    this.div.style.backgroundColor = theme.btn.backgroundColor.off;
+    this.div.style.borderColor = theme.btn.borderColor.off;
+    this.div.firstChild.style.fill = theme.btn.svgFill.off;
   };
   Btn.prototype.disable = function() {
-    this.div.style.backgroundColor = '#888';
-    this.div.style.borderColor = '#aaa';
-    this.div.firstChild.style.fill = '#555';
+    this.div.style.backgroundColor = theme.btn.backgroundColor.disable;
+    this.div.style.borderColor = theme.btn.borderColor.disable;
+    this.div.firstChild.style.fill = theme.btn.svgFill.disable;
   };
   Btn.prototype.title = function(s) { this.div.title = s; };
-  var svg_play = '<svg fill="#555" height="18" viewBox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg"><path d="M8 5v14l11-7z"/><path d="M0 0h24v24H0z" fill="none"/></svg>';
-  var svg_pause = '<svg fill="#555" height="18" viewBox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/><path d="M0 0h24v24H0z" fill="none"/></svg>';
-  var svg_stop = '<svg fill="#555" height="18" viewBox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M6 6h12v12H6z"/></svg>';
-  var svg_loop = '<svg fill="#555" height="18" viewBox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>';
-  var svg_more = '<svg fill="#555" height="18" viewBox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M12 3v9.28c-.47-.17-.97-.28-1.5-.28C8.01 12 6 14.01 6 16.5S8.01 21 10.5 21c2.31 0 4.2-1.75 4.45-4H15V6h4V3h-7z"/></svg>';
-  var svg_open = '<svg fill="#555" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0V0z"/><path d="M10 4H2v16h20V6H12l-2-2z"/></svg>';
-  var svg_link = '<svg fill="#555" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/><path fill="none" d="M0 0h24v24H0z"/></svg>';
-  var svg_close = '<svg stroke="#ff8" xmlns="http://www.w3.org/2000/svg" width="7" height="7" viewBox="0 0 7 7"><line x1="1" y1="1" x2="6" y2="6"/><line x1="1" y1="6" x2="6" y2="1"/></svg>';
 
   function _stopProp(e) { e.stopPropagation(); e.preventDefault(); }
 
@@ -71,8 +135,9 @@
     self.gui.style.boxSizing = 'content-box';
     self.gui.style.margin = '0px';
     self.gui.style.padding = '0px';
+    self.gui.style.borderRadius = theme.container.borderRadius;
     self.gui.style.borderStyle = 'none';
-    self.gui.style.backgroundColor = '#888';
+    self.gui.style.backgroundColor = theme.container.backgroundColor;
     self.gui.style.width = '270px';
     self.gui.style.height = '40px';
 
@@ -81,7 +146,7 @@
     var step = 28;
 
     if (arg.play) {
-      self.playBtn = new Btn(svg_play);
+      self.playBtn = new Btn(theme.svg.play);
       self.playBtn.div.style.left = left + 'px';
       left += step;
       self.playBtn.div.title = 'play';
@@ -91,7 +156,7 @@
     else self.playBtn = _noBtn;
 
     if (arg.pause) {
-      self.pauseBtn = new Btn(svg_pause);
+      self.pauseBtn = new Btn(theme.svg.pause);
       self.pauseBtn.div.style.left = left + 'px';
       left += step;
       self.pauseBtn.div.title = 'pause';
@@ -101,7 +166,7 @@
     else self.pauseBtn = _noBtn;
 
     if (arg.stop) {
-      self.stopBtn = new Btn(svg_stop);
+      self.stopBtn = new Btn(theme.svg.stop);
       self.stopBtn.div.style.left = left + 'px';
       left += step;
       self.stopBtn.div.title = 'stop';
@@ -111,7 +176,7 @@
     else self.stopBtn = _noBtn;
 
     if (arg.loop) {
-      self.loopBtn = new Btn(svg_loop);
+      self.loopBtn = new Btn(theme.svg.loop);
       self.loopBtn.div.style.left = left + 'px';
       left += step;
       self.loopBtn.div.title = 'loop';
@@ -121,7 +186,7 @@
     else self.loopBtn = _noBtn;
 
     if (arg.midi) {
-      self.midiBtn = new Btn(svg_more);
+      self.midiBtn = new Btn(theme.svg.more);
       self.midiBtn.div.style.left = right + 'px';
       right -= step;
       self.midiBtn.div.title = 'midi';
@@ -144,7 +209,7 @@
     else self.midiBtn = _noBtn;
 
     if (arg.link) {
-      self.linkBtn = new Btn(svg_link);
+      self.linkBtn = new Btn(theme.svg.link);
       self.linkBtn.div.style.left = right + 'px';
       right -= step;
       self.linkBtn.div.title = 'link';
@@ -152,7 +217,7 @@
     }
 
     if (arg.file) {
-      self.fileBtn = new Btn(svg_open);
+      self.fileBtn = new Btn(theme.svg.open);
       self.fileBtn.div.style.left = right + 'px';
       right -= step;
       self.fileBtn.div.title = 'file';
@@ -161,8 +226,8 @@
       self.fileInput = document.createElement('input');
       self.fileInput.type = 'file';
       self.fileInput.style.position = 'fixed';
-      self.fileInput.style.top = '-1000px';
-      self.fileInput.accept = '.mid, .midi, .kar, .rmi, .syx';
+      self.fileInput.style.visibility = 'hidden';
+      self.fileInput.accept = '.mid, .midi, .midi2, .kar, .rmi, .syx';
       self.gui.appendChild(self.fileInput);
 
       if (window.FileReader) {
@@ -185,12 +250,13 @@
       self.closeBtn.style.left = '262px';
       self.closeBtn.style.margin = '0';
       self.closeBtn.style.padding = '0';
-      self.closeBtn.style.backgroundColor = '#f44';
+      self.closeBtn.style.borderRadius = theme.btn.close.borderRadius;
+      self.closeBtn.style.backgroundColor = theme.btn.close.backgroundColor;
       self.closeBtn.style.width = '7px';
       self.closeBtn.style.height = '7px';
       self.closeBtn.style.lineHeight = '0';
       self.closeBtn.style.lineSpasing = '0';
-      self.closeBtn.innerHTML = svg_close;
+      self.closeBtn.innerHTML = theme.svg.close;
       self.closeBtn.title = 'close';
       self.closeBtn.addEventListener('click', function() { self.destroy(); });
       self.gui.appendChild(self.closeBtn);
@@ -207,9 +273,9 @@
     self.lbl.style.height = '12px';
     self.lbl.style.padding = '0';
     self.lbl.style.textAlign = 'center';
-    self.lbl.style.color = '#aaa';
-    self.lbl.style.fontSize = '12px';
-    self.lbl.style.fontFamily = 'Arial, Helvetica, sans-serif';
+    self.lbl.style.color = theme.lbl.color;
+    self.lbl.style.fontSize = theme.lbl.fontSize;
+    self.lbl.style.fontFamily = theme.lbl.fontFamily;
     self.gui.appendChild(self.lbl);
 
     self.rail = document.createElement('div');
@@ -222,10 +288,10 @@
     self.rail.style.height = '0';
     self.rail.style.padding = '1px';
     self.rail.style.borderStyle = 'solid';
-    self.rail.style.borderWidth = '1px';
-    self.rail.style.borderRadius = '2px';
-    self.rail.style.borderColor = '#aaa';
-    self.rail.style.backgroundColor = '#888';
+    self.rail.style.borderWidth = theme.rail.borderWidth;
+    self.rail.style.borderRadius = theme.rail.borderRadius;
+    self.rail.style.borderColor = theme.rail.borderColor.disable;
+    self.rail.style.backgroundColor = theme.rail.backgroundColor.disable;
     self.gui.appendChild(self.rail);
 
     self.caret = document.createElement('div');
@@ -238,10 +304,10 @@
     self.caret.style.left = '-5px';
     self.caret.style.padding = '4px';
     self.caret.style.borderStyle = 'solid';
-    self.caret.style.borderWidth = '1px';
-    self.caret.style.borderRadius = '6px';
-    self.caret.style.borderColor = '#aaa';
-    self.caret.style.backgroundColor = '#888';
+    self.caret.style.borderWidth = theme.caret.borderWidth;
+    self.caret.style.borderRadius = theme.caret.borderRadius;
+    self.caret.style.borderColor = theme.caret.borderColor.disable;
+    self.caret.style.backgroundColor = theme.caret.backgroundColor.disable;
     self.caret.addEventListener('mousedown', function(e) { self._mousedown(e); });
     self.rail.appendChild(self.caret);
 
@@ -252,6 +318,8 @@
   var _floating = 0;
   function Player(x, y) {
     if (!(this instanceof Player)) return new Player(x, y);
+    this._m2m1 = new JZZ.M2M1();
+    this._connect(this._m2m1);
     var arg = {
       at: undefined,
       x: undefined,
@@ -321,10 +389,10 @@
     this.midiBtn.disable();
     if (this._conn) this.midiBtn.off();
     this.fileBtn.off();
-    this.rail.style.borderColor = '#aaa';
-    this.rail.style.backgroundColor = '#888';
-    this.caret.style.borderColor = '#aaa';
-    this.caret.style.backgroundColor = '#888';
+    this.rail.style.borderColor = theme.rail.borderColor.disable;
+    this.rail.style.backgroundColor = theme.rail.backgroundColor.disable;
+    this.caret.style.borderColor = theme.caret.borderColor.disable;
+    this.caret.style.backgroundColor = theme.caret.backgroundColor.disable;
   };
   Player.prototype.enable = function() {
     this.playBtn.off();
@@ -332,9 +400,9 @@
     this.stopBtn.off();
     this.loopBtn.off();
     if (this._conn) this.midiBtn.off();
-    this.rail.style.borderColor = '#ccc';
-    this.caret.style.backgroundColor = '#aaa';
-    this.caret.style.borderColor = '#ccc';
+    this.rail.style.borderColor = theme.rail.borderColor.enable;
+    this.caret.style.backgroundColor = theme.caret.backgroundColor.enable;
+    this.caret.style.borderColor = theme.caret.borderColor.enable;
   };
   Player.prototype.load = function(smf) {
     var self = this;
@@ -402,7 +470,7 @@
           self._out = this;
           self._outname = this.name();
           self.midiBtn.title(self._outname);
-          self._connect(this);
+          self._m2m1.connect(this);
           self._waiting = false;
           self.onSelect(self._outname);
           if (self._playing) {
@@ -459,13 +527,16 @@
       }
     }
   };
+  Player.prototype.onLoop = nop;
   Player.prototype.loop = function(n) {
     if (this._player) {
+      var self = this;
       if (typeof n == 'undefined') n = !this._loop;
       if (n == parseInt(n) && n > 0) this._loop = n;
       else this._loop = n ? -1 : 0;
       if (this._loop == 1) this._loop = 0;
       this._player.loop(this._loop);
+      JZZ.lib.schedule(function() { self.onLoop(n); });
       if (this._loop) {
         this.loopBtn.on();
         this.loopBtn.title('loop: ' + (this._loop == -1 ? '\u221e' : this._loop));
@@ -517,15 +588,24 @@
       var bytes = new Uint8Array(e.target.result);
       for (var i = 0; i < bytes.length; i++) data += String.fromCharCode(bytes[i]);
       var smf;
+      var mime = 'audio/midi';
       try {
-        smf = new JZZ.MIDI.SYX(data);
+        smf = new JZZ.MIDI.Clip(data);
+        mime = 'audio/midi2';
+      }
+      catch (err) {}
+      try {
+        if (!smf) {
+          smf = new JZZ.MIDI.SYX(data);
+          mime = 'application/octet-stream';
+        }
       }
       catch (err) {}
       try {
         if (!smf) smf = new JZZ.MIDI.SMF(data);
         self.stop();
         JZZ.lib.schedule(function() { self.load(smf); });
-        if (self.linkBtn) self.setUrl('data:audio/midi;base64,' + JZZ.lib.toBase64(data), f.name);
+        if (self.linkBtn) self.setUrl('data:' + mime + ';base64,' + JZZ.lib.toBase64(data), f.name);
       }
       catch (err) { console.log(err.message); }
     };
@@ -567,11 +647,11 @@
         self._closeselect();
         if (self._out) {
           if (self._playing) for (var c = 0; c < 16; c++) self._out._receive(JZZ.MIDI.allSoundOff(c));
-          self._disconnect(self._out);
+          self._m2m1.disconnect(self._out);
           self._out.close();
         }
         self._out = this;
-        self._connect(this);
+        self._m2m1.connect(this);
         self.midiBtn.title(self._outname);
         self.onSelect(self._outname);
         setTimeout(function() { self.onSelect(self._outname); }, 0);
@@ -653,7 +733,7 @@
   Player.prototype._mousedown = function(e) {
     if (_lftBtnDn(e) && this._player) {
       if (!this._more) e.preventDefault();
-      this.caret.style.backgroundColor = '#ddd';
+      this.caret.style.backgroundColor = theme.caret.backgroundColor.mouseDown;
       this._wasPlaying = this._playing;
       this._player.pause();
       this._caretX = e.clientX;
@@ -676,7 +756,7 @@
           this._wasPlaying = undefined;
           this._player.resume();
         }
-        this.caret.style.backgroundColor = '#aaa';
+        this.caret.style.backgroundColor = theme.caret.backgroundColor.mouseUp;
         this._caretX = undefined;
       }
     }
@@ -723,15 +803,18 @@
   Player.prototype.disconnect = function(port) {
     if (port == this) {
       this._conn = false;
-      if (this._out) this._disconnect(this._out);
+      if (this._out) this._m2m1.disconnect(this._out);
       this._outname = undefined;
       this.midiBtn.disable();
     }
     else {
       this._disconnect(port);
+      this._connect(this._m2m1);
     }
   };
   Player.prototype.connected = function() { return this._outname; };
 
   JZZ.gui.Player = Player;
+  JZZ.gui.Player.Btn = Btn;
+  JZZ.gui.Player.theme = theme;
 });
