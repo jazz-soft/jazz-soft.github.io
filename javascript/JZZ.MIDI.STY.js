@@ -15,7 +15,8 @@
   /* istanbul ignore next */
   if (JZZ.MIDI.STY) return;
 
-  var _ver = '0.0.8';
+  var _ver = '0.1.0';
+  var _now = JZZ.lib.now;
 
   function STY(smf) {
     var self = this;
@@ -85,7 +86,7 @@
       }
       if (smf[i].type == 'MHhd') this.mhhd = smf[i].data;
     }
-  }
+  };
   STY.version = function() { return _ver; };
   STY.prototype.version = STY.version;
 
@@ -108,7 +109,7 @@
       else if (m.isTimeSignature()) trk.smfTimeSignature(this.tsig[0], this.tsig[1], this.tsig[2], this.tsig[3]);
       else trk.add(0, m);
     }
-    tr = this.trk['SFF1'] || this.trk['SFF2'];
+    tr = this.trk.SFF1 || this.trk.SFF2;
     if (!tr) {
       tr = new JZZ.MIDI.SMF.MTrk();
       tr.smfMarker('SFF1');
@@ -478,7 +479,121 @@
       smf.push(trk);
       return smf;
     }
+  };
+
+  STY.prototype.player = function() {
+    var pl = new Player();
+    pl._tr = {};
+    var i, k, t, tr;
+    var keys = Object.keys(this.trk);
+    for (k = 0; k < keys.length; k++) {
+      t = this.trk[keys[k]];
+      tr = [];
+      for (i = 0; i < t.length; i++) tr.push(JZZ.MIDI(t[i]));
+      pl.trk[k] = tr;
+    }
+    return pl;
+  };
+
+  function Player() {
+    var self = new JZZ.Widget();
+    self._info.name = 'STYLE Player';
+    self._info.manufacturer = 'Jazz-Soft';
+    self._info.version = _ver;
+    self.playing = false;
+    self.trk = {};
+    self._pos = 0;
+    self._tick = (function(x) { return function(){ x.tick(); }; })(self);
+    for (var k in Player.prototype) if (Player.prototype.hasOwnProperty(k)) self[k] = Player.prototype[k];
+    return self;
   }
+  Player.prototype.play = function() {
+    this.event = undefined;
+    this.playing = true;
+    this.paused = false;
+    this._ptr = 0;
+    this._pos = 0;
+    this._p0 = 0;
+    this._t0 = _now();
+    this.tick();
+  };
+  Player.prototype.stop = function() {
+    this._pos = 0;
+    this.playing = false;
+    this.event = 'stop';
+    this.paused = undefined;
+  };
+  Player.prototype.pause = function() {
+    this.event = 'pause';
+  };
+  Player.prototype.resume = function() {
+    if (this.playing) return;
+    if (this.paused) {
+      this.event = undefined;
+      this._t0 = _now();
+      this.playing = true;
+      this.paused = false;
+      this.tick();
+    }
+    else this.play();
+  };
+  Player.prototype.schedule = function(s) {
+    if (this.trk[s]) {
+      this.next = s;
+    }
+  };
+  function _filter(e) { this._receive(e); }
+  Player.prototype._filter = _filter;
+  Player.prototype.filter = function(f) {
+    this._filter = f instanceof Function ? f : _filter;
+  };
+  function _div(s) { return (s.charCodeAt(0) << 16) + (s.charCodeAt(1) << 8) + s.charCodeAt(2); }
+  Player.prototype._receive = function(e) {
+    if (e.ff == 0x51 && this.ppqn) {
+      this._mul = this.ppqn * 1000.0 / _div(e.dd);
+      this.mul = this._mul * this._speed;
+      this._t0 = _now();
+      this._p0 = this._pos;
+    }
+    this._emit(e);
+  };
+  Player.prototype.tick = function() {
+    var t = _now();
+    var e;
+    this._pos = this._p0 + (t - this._t0) * this.mul;
+    for(; this._ptr < this._data.length; this._ptr++) {
+      e = this._data[this._ptr];
+      if (e.tt > this._pos) break;
+      this._filter(e);
+    }
+    if (this._ptr >= this._data.length) {
+      if (this._loop && this._loop != -1) this._loop--;
+      if (this._loop) {
+        this._ptr = 0;
+        this._p0 = 0;
+        this._t0 = t;
+      }
+      else this.stop();
+      this.onEnd();
+    }
+    if (this.event == 'stop') {
+      this.playing = false;
+      this.paused = false;
+      this._pos = 0;
+      this._ptr = 0;
+      this.sndOff();
+      this.event = undefined;
+    }
+    if (this.event == 'pause') {
+      this.playing = false;
+      this.paused = true;
+      if (this._pos >= this._duration) this._pos = this._duration - 1;
+      this._p0 = this._pos;
+      this.sndOff();
+      this.event = undefined;
+    }
+    if (this.playing) JZZ.lib.schedule(this._tick);
+  };
 
   JZZ.MIDI.STY = STY;
 });

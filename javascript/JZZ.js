@@ -14,7 +14,7 @@
 })(this, function() {
 
   var _scope = typeof window === 'undefined' ? global : window;
-  var _version = '1.7.6';
+  var _version = '1.8.2';
   var i, j, k, m, n;
 
   /* istanbul ignore next */
@@ -1678,6 +1678,10 @@
     x = (Math.floor(x) << 14) + MIDI.to14b(x - Math.floor(x));
     return x < 0x1fffff ? x : 0x1ffffe;
   };
+  MIDI.to32b = function(x) {
+    _float(x);
+    return x <= 0 ? 0 : x >= 1 ? 0xffffffff : Math.floor(x * 0x100000000);
+  };
   function _MIDI() {}
   _MIDI.prototype = MIDI;
   MIDI._sxid = 0x7f;
@@ -1998,6 +2002,7 @@
     mode3: function(c) { return [ _helperCH.omni(c, false), _helperCH.poly(c) ]; },
     mode4: function(c) { return [ _helperCH.omni(c, false), _helperCH.mono(c) ]; }
   };
+  _helperGCH.rpnTranspose = _helperGCH.rpnCoarseTuningF;
   var _helperSXX = { // compound messages no channel
     sxMasterTuning: function(n, m, l) { return [_helperSX.sxMasterCoarseTuning.call(this, n), _helperSX.sxMasterFineTuning.call(this, m, l)]; },
     sxMasterTuningF: function(x) { return [_helperSX.sxMasterCoarseTuningF.call(this, x), _helperSX.sxMasterFineTuningF.call(this, x)]; },
@@ -2716,18 +2721,17 @@
   JZZ.MIDI = MIDI;
   _J.prototype.MIDI = MIDI;
 
-  function _clear_ctxt() {
-    var i;
-    this._cc = [];
-    for (i = 0; i < 16; i++) this._cc[i] = {};
+  function _clear_ctxt(gr) {
+    if (typeof gr == 'undefined') this._cc = {};
+    else this._cc[gr] = {};
   }
   function _rpn_txt(msb, lsb) {
     var a = typeof msb == 'undefined' ? '??' : __hex(msb);
     var b = typeof lsb == 'undefined' ? '??' : __hex(lsb);
     var c = {
       '0000': 'Pitch Bend Sensitivity',
-      '0001': 'Channel Fine Tune',
-      '0002': 'Channel Coarse Tune',
+      '0001': 'Channel Fine Tuning',
+      '0002': 'Channel Coarse Tuning',
       '0003': 'Select Tuning Program',
       '0004': 'Select Tuning Bank',
       '0005': 'Vibrato Depth Range',
@@ -2740,100 +2744,184 @@
     var b = typeof lsb == 'undefined' ? '??' : __hex(lsb);
     return 'NRPN ' + a + ' ' + b;
   }
+  function _m2_str(a) {
+    var i;
+    var s = '';
+    for (i = 0; i < a.length; i++) {
+      if (!a[i]) break;
+      s += String.fromCharCode(a[i]);
+    }
+    return JZZ.lib.fromUTF8(s);
+  }
   function _read_ctxt(msg) {
-    if (!msg.length || msg[0] < 0x80) return msg;
-    if (msg[0] == 0xff) { this._clear(); return msg; }
-    var ch = msg[0] & 15;
-    var st = msg[0] >> 4;
-    var s;
+    var mmm, kk, tt, st, n, a, s;
+    var gr = 'x';
+    var ch = 'x';
+    if (msg.isMidi2) {
+      tt = msg[0] >> 4;
+      gr = (msg[0] & 15).toString(16);
+      kk = gr;
+      if (!this._cc[kk]) this._cc[kk] = {};
+      if (tt == 2) {
+        mmm = new MIDI(msg.slice(1));
+      }
+      else if (tt == 3) {
+        st = msg[1] >> 4;
+        n = msg[1] & 15;
+        a = msg.slice(2, 2 + n);
+        if (st == 0) {
+          mmm = new MIDI([0xf0].concat(a, [0xf7]));
+          this._cc[kk].sx = undefined;
+        }
+        if (st == 1) {
+          this._cc[kk].sx = a;
+        }
+        if (st == 2) {
+          if (this._cc[kk].sx) this._cc[kk].sx = this._cc[kk].sx.concat(a);
+        }
+        if (st == 3) {
+          if (this._cc[kk].sx) {
+            a = this._cc[kk].sx.concat(a);
+            mmm = new MIDI([0xf0].concat(a, [0xf7]));
+            this._cc[kk].sx = undefined;
+          }
+        }
+      }
+      else if (tt == 4) {
+        st = msg[1] >> 4;
+        ch = (msg[1] & 15).toString(16);
+        kk = gr + ch;
+        if (!this._cc[kk]) this._cc[kk] = {};
+        if (st == 12) {
+          if (msg[3] & 1) {
+            this._cc[kk].bm = msg[6];
+            this._cc[kk].bl = msg[7];
+          }
+          msg._bm = this._cc[kk].bm;
+          msg._bl = this._cc[kk].bl;
+          if (JZZ.MIDI.programName) msg.label(JZZ.MIDI.programName(msg[4], msg._bm, msg._bl));
+        }
+      }
+      else if (tt == 13) {
+        st = msg[1] >> 6;
+        if (!(msg[1] & 0x30)) ch = (msg[1] & 15).toString(16);
+        kk = gr + ch;
+        if (!this._cc[kk]) this._cc[kk] = {};
+        a = msg.slice(4);
+        if (st == 0) {
+          msg.label(_m2_str(a));
+          this._cc[kk].tx = undefined;
+        }
+        if (st == 1) {
+          this._cc[kk].tx = a;
+        }
+        if (st == 2) {
+          if (this._cc[kk].tx) this._cc[kk].tx = this._cc[kk].tx.concat(a);
+        }
+        if (st == 3) {
+          if (this._cc[kk].tx) {
+            a = this._cc[kk].tx.concat(a);
+            msg.label(_m2_str(a));
+            this._cc[kk].tx = undefined;
+          }
+        }
+      }
+    }
+    else mmm = msg;
+    if (!mmm || !mmm.length || mmm[0] < 0x80) return msg;
+    if (mmm[0] == 0xff) { this._clear(); return msg; }
+    st = mmm[0] >> 4;
+    ch = (mmm[0] & 15).toString(16);
+    kk = st == 15 ? gr : gr + ch;
+    if (!this._cc[kk]) this._cc[kk] = {};
     if (st == 12) {
-      msg._bm = this._cc[ch].bm;
-      msg._bl = this._cc[ch].bl;
-      if (JZZ.MIDI.programName) msg.label(JZZ.MIDI.programName(msg[1], msg._bm, msg._bl));
+      mmm._bm = this._cc[kk].bm;
+      mmm._bl = this._cc[kk].bl;
+      if (JZZ.MIDI.programName) msg.label(JZZ.MIDI.programName(mmm[1], mmm._bm, mmm._bl));
     }
     else if (st == 11) {
-      switch (msg[1]) {
-        case 0: this._cc[ch].bm = msg[2]; break;
-        case 32: this._cc[ch].bl = msg[2]; break;
-        case 98: this._cc[ch].nl = msg[2]; this._cc[ch].rn = 'n'; break;
-        case 99: this._cc[ch].nm = msg[2]; this._cc[ch].rn = 'n'; break;
-        case 100: this._cc[ch].rl = msg[2]; this._cc[ch].rn = 'r'; break;
-        case 101: this._cc[ch].rm = msg[2]; this._cc[ch].rn = 'r'; break;
+      switch (mmm[1]) {
+        case 0: this._cc[kk].bm = mmm[2]; break;
+        case 32: this._cc[kk].bl = mmm[2]; break;
+        case 98: this._cc[kk].nl = mmm[2]; this._cc[kk].rn = 'n'; break;
+        case 99: this._cc[kk].nm = mmm[2]; this._cc[kk].rn = 'n'; break;
+        case 100: this._cc[kk].rl = mmm[2]; this._cc[kk].rn = 'r'; break;
+        case 101: this._cc[kk].rm = mmm[2]; this._cc[kk].rn = 'r'; break;
         case 6: case 38: case 96: case 97:
-          if (this._cc[ch].rn == 'r') {
-            msg._rm = this._cc[ch].rm;
-            msg._rl = this._cc[ch].rl;
-            msg.label(_rpn_txt(this._cc[ch].rm, this._cc[ch].rl));
+          if (this._cc[kk].rn == 'r') {
+            mmm._rm = this._cc[kk].rm;
+            mmm._rl = this._cc[kk].rl;
+            msg.label(_rpn_txt(this._cc[kk].rm, this._cc[kk].rl));
           }
-          if (this._cc[ch].rn == 'n') {
-            msg._nm = this._cc[ch].rm;
-            msg._nl = this._cc[ch].nl;
-            msg.label(_nrpn_txt(this._cc[ch].nm, this._cc[ch].nl));
+          if (this._cc[kk].rn == 'n') {
+            mmm._nm = this._cc[kk].rm;
+            mmm._nl = this._cc[kk].nl;
+            msg.label(_nrpn_txt(this._cc[kk].nm, this._cc[kk].nl));
           }
           break;
       }
     }
-    else if (msg.isFullSysEx()) {
-      if (msg[1] == 0x7f) {
-        if (msg[3] == 4) {
-          s = { 1: 'Master Volume', 2: 'Master Balance', 3: 'Master Fine Tuning', 4: 'Master Coarse Tuning' }[msg[4]];
+    else if (mmm.isFullSysEx()) {
+      if (mmm[1] == 0x7f) {
+        if (mmm[3] == 4) {
+          s = { 1: 'Master Volume', 2: 'Master Balance', 3: 'Master Fine Tuning', 4: 'Master Coarse Tuning' }[mmm[4]];
           if (s) msg.label(s);
         }
-        else if (msg[3] == 8) {
-          s = { 2: 'Note Tuning', 7: 'Note Tuning, Bank', 8: 'Scale Tuning, 1 byte format', 9: 'Scale Tuning, 2 byte format' }[msg[4]];
+        else if (mmm[3] == 8) {
+          s = { 2: 'Note Tuning', 7: 'Note Tuning, Bank', 8: 'Scale Tuning, 1 byte format', 9: 'Scale Tuning, 2 byte format' }[mmm[4]];
           if (s) msg.label(s);
         }
       }
-      else if (msg[1] == 0x7e) {
-        if (msg[3] == 6) {
-          if (msg[4] == 1) msg.label('Device ID Request');
-          else if (msg[4] == 2) {
+      else if (mmm[1] == 0x7e) {
+        if (mmm[3] == 6) {
+          if (mmm[4] == 1) msg.label('Device ID Request');
+          else if (mmm[4] == 2) {
             msg.label('Device ID Response');
           }
         }
-        else if (msg[3] == 8) {
+        else if (mmm[3] == 8) {
           s = {
             0: 'Bulk Tuning Dump Request', 1: 'Bulk Tuning Dump', 3: 'Bulk Tuning Dump Request, Bank', 4: 'Bulk Tuning Dump, Bank',
             5: 'Scale Tuning Dump, 1 byte format', 6: 'Scale Tuning Dump, 2 byte format',
             7: 'Note Tuning, Bank', 8: 'Scale Tuning, 1 byte format', 9: 'Scale Tuning, 2 byte format'
-          }[msg[4]];
+          }[mmm[4]];
           if (s) msg.label(s);
         }
-        else if (msg[3] == 9) {
-          if (msg[4] == 1) { msg.label('GM1 System On'); this._clear(); this._gm = '1'; }
-          else if (msg[4] == 2) { msg.label('GM System Off'); this._clear(); this._gm = '0'; }
-          else if (msg[4] == 3) { msg.label('GM2 System On'); this._clear(); this._gm = '2'; }
+        else if (mmm[3] == 9) {
+          if (mmm[4] == 1) { msg.label('GM1 System On'); this._clear(gr); this._cc[gr].gm = '1'; }
+          else if (mmm[4] == 2) { msg.label('GM System Off'); this._clear(gr); this._cc[gr].gm = '0'; }
+          else if (mmm[4] == 3) { msg.label('GM2 System On'); this._clear(gr); this._cc[gr].gm = '2'; }
         }
       }
-      else if (msg[1] == 0x43) {
-        if ((msg[2] & 0xf0) == 0x10 && msg[3] == 0x4c) {
-          if (msg[4] == 0 && msg[5] == 0 && msg[6] == 0x7e && msg[7] == 0) {
-            msg.label('XG System On'); this._clear(); this._gm = 'Y';
+      else if (mmm[1] == 0x43) {
+        if ((mmm[2] & 0xf0) == 0x10 && mmm[3] == 0x4c) {
+          if (mmm[4] == 0 && mmm[5] == 0 && mmm[6] == 0x7e && mmm[7] == 0) {
+            msg.label('XG System On'); this._clear(gr); this._cc[gr].gm = 'Y';
           }
-          else if (msg[4] == 0 && msg[5] == 0 && msg[6] == 0) msg.label('XG Master Tuning');
-          else if (msg[4] == 0 && msg[5] == 0 && msg[6] == 4) msg.label('XG Master Volume');
-          else if (msg[4] == 0 && msg[5] == 0 && msg[6] == 6) msg.label('XG Master Transpose');
-          else if (msg[4] == 8 && msg[5] < 16 && msg[6] >= 0x41 && msg[6] <= 0x4c) msg.label('XG Scale Tuning');
+          else if (mmm[4] == 0 && mmm[5] == 0 && mmm[6] == 0) msg.label('XG Master Tuning');
+          else if (mmm[4] == 0 && mmm[5] == 0 && mmm[6] == 4) msg.label('XG Master Volume');
+          else if (mmm[4] == 0 && mmm[5] == 0 && mmm[6] == 6) msg.label('XG Master Transpose');
+          else if (mmm[4] == 8 && mmm[5] < 16 && mmm[6] >= 0x41 && mmm[6] <= 0x4c) msg.label('XG Scale Tuning');
           else  msg.label('XG Parameter');
         }
       }
-      else if (msg[1] == 0x41) {
-        if (msg[3] == 0x42 && msg[4] == 0x12) {
-          if (msg[5] == 0x40) {
-            if (msg[6] == 0) {
-              if (msg[7] == 0x7f && msg[8] == 0 && msg[9] == 0x41) {
-                msg.label('GS Reset'); this._clear(); this._gm = 'R';
+      else if (mmm[1] == 0x41) {
+        if (mmm[3] == 0x42 && mmm[4] == 0x12) {
+          if (mmm[5] == 0x40) {
+            if (mmm[6] == 0) {
+              if (mmm[7] == 0x7f && mmm[8] == 0 && mmm[9] == 0x41) {
+                msg.label('GS Reset'); this._clear(gr); this._cc[gr].gm = 'R';
               }
-              else if (msg[7] == 0) msg.label('GS Master Tuning');
-              else if (msg[7] == 4) msg.label('GS Master Volume');
-              else if (msg[7] == 5) msg.label('GS Master Transpose');
+              else if (mmm[7] == 0) msg.label('GS Master Tuning');
+              else if (mmm[7] == 4) msg.label('GS Master Volume');
+              else if (mmm[7] == 5) msg.label('GS Master Transpose');
               else msg.label('GS Parameter');
             }
-            else if ((msg[6] & 0xf0) == 0x10 && msg[7] == 0x15) msg.label('GS Drum Part Change');
-            else if ((msg[6] & 0xf0) == 0x10 && msg[7] >= 0x40 && msg[7] <= 0x4b) msg.label('GS Scale Tuning');
+            else if ((mmm[6] & 0xf0) == 0x10 && mmm[7] == 0x15) msg.label('GS Drum Part Change');
+            else if ((mmm[6] & 0xf0) == 0x10 && mmm[7] >= 0x40 && mmm[7] <= 0x4b) msg.label('GS Scale Tuning');
             else msg.label('GS Parameter');
           }
-          if (msg[5] == 0x41) msg.label('GS Parameter');
+          if (mmm[5] == 0x41) msg.label('GS Parameter');
         }
       }
     }
@@ -2844,6 +2932,11 @@
     self._clear = _clear_ctxt;
     self._read = _read_ctxt;
     self._receive = function(msg) { this._emit(this._read(msg)); };
+    self.gm = function(g) {
+      if (typeof g == 'undefined') g = 'x';
+      if (this._cc[g]) return this._cc[g].gm || 0;
+      return 0;
+    };
     self._clear();
     self._resume();
     return self;
@@ -3002,6 +3095,10 @@
     a = _32b(a);
     return [(a >> 24) & 255, (a >> 16) & 255, (a >> 8) & 255, a & 255];
   }
+  function _f_32(x) {
+    x = Math.floor(x * 0x100000000);
+    return x > 0xffffffff ? 0xffffffff : x < 0 ? 0 : x;
+  }
   var _helperNN = {
     noop: function() { return [0, 0, 0, 0]; },
     umpClock: function(n) { n = _16b(n); return [0, 0x10, n >> 8, n & 0xff]; },
@@ -3052,7 +3149,14 @@
     umpLyrics: function(g, t) { return _helperGCX.umpCustomText(g, 0, 1, 2, 1, t); },
     umpLyricsLanguage: function(g, t) { return _helperGCX.umpCustomText(g, 0, 1, 2, 2, t); },
     umpRuby: function(g, t) { return _helperGCX.umpCustomText(g, 0, 1, 2, 3, t); },
-    umpRubyLanguage: function(g, t) { return _helperGCX.umpCustomText(g, 0, 1, 2, 4, t); }
+    umpRubyLanguage: function(g, t) { return _helperGCX.umpCustomText(g, 0, 1, 2, 4, t); },
+    umpData: function(g, x, y) {
+      if (typeof y == 'undefined') { y = x; x = 0; }
+      var i;
+      var a = _slice(_bytes(y), 13);
+      for (i = 0; i < a.length; i++) a[i] = [0x50 + _4b(g), _umpseqstat(a.length, i) * 16 + a[i].length, _8b(x)].concat(a[i], _zeros).slice(0, 16);
+      return a;
+    }
   };
   var _noctrl = [0, 6, 32, 38, 98, 99, 100, 101];
   var _helperGC = {
@@ -3070,26 +3174,86 @@
     umpAftertouch: function(g, c, n, x, y, z, w) {
       return [0x40 + _4b(g), 0xa0 + _ch(c), _7bn(n), 0].concat(_32a(x, y, z, w));
     },
+    umpAftertouchF: function(g, c, n, x) {
+      return _helperGC.umpAftertouch(g, c, n, _f_32(x));
+    },
     umpControl: function(g, c, n, x, y, z, w) {
       if (_noctrl.includes(n)) _throw(n);
       return [0x40 + _4b(g), 0xb0 + _ch(c), _7b(n), 0].concat(_32a(x, y, z, w));
     },
+    umpPortamento: function(g, c, n) {
+      return [0x40 + _4b(g), 0xb0 + _ch(c), 0x54, 0, _7bn(n), 0, 0, 0];
+    },
     umpPressure: function(g, c, x, y, z, w) {
       return [0x40 + _4b(g), 0xd0 + _ch(c), 0, 0].concat(_32a(x, y, z, w));
+    },
+    umpPressureF: function(g, c, x) {
+      return _helperGC.umpPressure(g, c, _f_32(x));
     },
     umpProgram: function(g, c, n, msb, lsb) {
       return typeof msb == 'undefined' && typeof lsb == 'undefined' ?
         [0x40 + _4b(g), 0xc0 + _ch(c), 0, 0, _7bn(n), 0, 0, 0] :
         [0x40 + _4b(g), 0xc0 + _ch(c), 0, 1, _7bn(n), 0, _7bn(msb), _7bn(lsb)];
     },
+    umpPitchBend: function(g, c, x, y, z, w) {
+      return [0x40 + _4b(g), 0xe0 + _ch(c), 0, 0].concat(_32a(x, y, z, w));
+    },
+    umpPitchBendF: function(g, c, x) {
+      return _helperGC.umpPitchBend(g, c, _f_32((x + 1) / 2));
+    },
+    umpPnPitchBend: function(g, c, n, x, y, z, w) {
+      return [0x40 + _4b(g), 0x60 + _ch(c), _7bn(n), 0].concat(_32a(x, y, z, w));
+    },
+    umpPnPitchBendF: function(g, c, n, x) {
+      return _helperGC.umpPnPitchBend(g, c, n, _f_32((x + 1) / 2));
+    },
     umpRPN: function(g, c, b, n, x, y, z, w) {
       return [0x40 + _4b(g), 0x20 + _ch(c), _7b(b), _7b(n)].concat(_32a(x, y, z, w));
     },
     umpNRPN: function(g, c, b, n, x, y, z, w) {
       return [0x40 + _4b(g), 0x30 + _ch(c), _7b(b), _7b(n)].concat(_32a(x, y, z, w));
+    },
+    umpPnRPN: function(g, c, n, i, x, y, z, w) {
+      return [0x40 + _4b(g), 0x00 + _ch(c), _7bn(n), _8b(i)].concat(_32a(x, y, z, w));
+    },
+    umpPnNRPN: function(g, c, n, i, x, y, z, w) {
+      return [0x40 + _4b(g), 0x10 + _ch(c), _7bn(n), _8b(i)].concat(_32a(x, y, z, w));
+    },
+    umpFineTuning: function(g, c, x, y, z, w) {
+      return _helperGC.umpRPN(g, c, 0, 1, x, y, z, w);
+    },
+    umpFineTuningF: function(g, c, x) {
+      return _helperGC.umpFineTuning(g, c, MIDI.to32b(_01((x % 1 + 1) / 2, x)));
+    },
+    umpCoarseTuning: function(g, c, n) {
+      return [0x40 + _4b(g), 0x20 + _ch(c), 0, 2, _7b(n) * 2, 0, 0, 0];
+    },
+    umpCoarseTuningF: function(g, c, x) {
+      return _helperGC.umpCoarseTuning(g, c, 0x40 + (x - x % 1));
+    },
+    umpTuningProgram: function(g, c, n) {
+      return [0x40 + _4b(g), 0x20 + _ch(c), 0, 3, _7b(n) * 2, 0, 0, 0];
+    },
+    umpTuningBank: function(g, c, n) {
+      return [0x40 + _4b(g), 0x20 + _ch(c), 0, 4, _7b(n) * 2, 0, 0, 0];
+    },
+    umpPnManagement: function(g, c, n, m) {
+      var a = m.toString().split('');
+      var x = 0;
+      for (var i = 0; i < a.length; i++) {
+        if (a[i] == 'S' && !(x & 1)) x |= 1;
+        else if (a[i] == 'D' && !(x & 2)) x |= 2;
+        else { x = m; break; }
+      }
+      return [0x40 + _4b(g), 0xf0 + _ch(c), _7bn(n), _8b(x), 0, 0, 0, 0];
     }
   };
+  _helperGC.umpPnPressure = _helperGC.umpAftertouch;
+  _helperGC.umpPnPressureF = _helperGC.umpAftertouchF;
+  _helperGC.umpTranspose = _helperGC.umpCoarseTuningF;
   var _helperGCX = {
+    umpTuningF: function(g, c, x) { return [_helperGC.umpCoarseTuningF(g, c, x), _helperGC.umpFineTuningF(g, c, x)]; },
+    umpTuningA: function(g, c, a) { return _helperGCX.umpTuningF(g, c, MIDI.shift(a)); },
     umpCustomText: function(g, c, d, b, s, t) {
       var i;
       var a = [];
@@ -3193,6 +3357,14 @@
   function _sliceSX(gr, m) {
     var a = _slice(m.slice(1, m.length - 1), 6);
     for (var i = 0; i < a.length; i++) a[i] = new UMP([0x30 + gr, _umpseqstat(a.length, i) * 16 + a[i].length].concat(a[i], _zeros).slice(0, 8));
+    return a;
+  }
+  function _bytes(s) {
+    var i;
+    var a = [];
+    if (typeof s == 'string') for (i = 0; i < s.length; i++) a.push(s.charCodeAt(i));
+    else for (i = 0; i < s.length; i++) a.push(s[i]);
+    for (i = 0; i < a.length; i++) if (a[i] != parseInt(a[i]) || a[i] < 0 || a[i] > 255) throw RangeError('Bad data');
     return a;
   }
   function _copyHelperSX(name, func) {
@@ -3309,6 +3481,10 @@
   UMP.prototype.getDelta = function() {
     if (this.isDelta()) return ((this[1] & 15) << 16) + (this[2] << 8) + this[3];
   };
+  UMP.prototype.getStatus = function() {
+    if (this.isFlex()) return this[1] >> 6;
+    if (this.isData() || this.isSX()) return this[1] >> 4;
+  };
 
   UMP.prototype.isTempo = function() {
     return (this[0] >> 4) == 13 && (this[1] >> 4) == 1 &&  this[2] == 0 &&  this[3] == 0;
@@ -3320,6 +3496,10 @@
   UMP.prototype.isDelta = function() { return this[0] == 0 && (this[1] >> 4) == 4; };
   UMP.prototype.isStartClip = function() { return this.match([0xf0, 0x20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]); };
   UMP.prototype.isEndClip = function() { return this.match([0xf0, 0x21, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]); };
+  UMP.prototype.isData = function() { return (this[0] & 0xf0) == 0x50; };
+  UMP.prototype.isFlex = function() { return (this[0] & 0xf0) == 0xd0; };
+  UMP.prototype.isText = function() { return (this[0] & 0xf0) == 0xd0 && (this[2] == 1 || this[2] == 2); };
+  UMP.prototype.isSX = function() { return (this[0] & 0xf0) == 0x30; };
   UMP.prototype.isNoteOn = function() {
     var c = (this[0] || 0) >> 4;
     var d = (this[1] || 0) >> 4;
@@ -3334,13 +3514,14 @@
     else if (c == 2) return d == 8 || (d == 9 && !this[3]);
     return false;
   };
+  UMP.prototype.label = MIDI.prototype.label;
   UMP.prototype.toString = MIDI.prototype.toString;
   UMP.prototype._str = function() {
     var t = this._string();
     return t ? _hexx(this) + ' -- ' + t : _hexx(this);
   };
   UMP.prototype._string = function() {
-    var n, s;
+    var n, s, ss;
     var t = this[0] >> 4;
     if (t == 1 || t == 2) return new MIDI(this.slice(1))._string();
     else if (t == 0) {
@@ -3369,6 +3550,23 @@
         14: 'Pitch Bend',
         15: 'Per-Note Management'
       }[n];
+      if (n == 11) {
+        s = {
+          84: 'Portamento'
+        }[this[2]] || s;
+      }
+      if (n == 2) {
+        ss = {
+          '0000': 'Pitch Bend Sensitivity',
+          '0001': 'Fine Tuning',
+          '0002': 'Coarse Tuning',
+          '0003': 'Select Tuning Program',
+          '0004': 'Select Tuning Bank',
+          '0005': 'Vibrato Depth Range',
+          '7f7f': 'NONE'
+        }[__hex(this[2]) + '' + __hex(this[3])];
+        if (ss) s += ': ' + ss;
+      }
     }
     else if (t == 5) {
       s = 'Data';
@@ -3438,12 +3636,12 @@
   }
   function _32_7(a, b, c, d) {
     var n = a * 0x1000000 + b * 0x10000 + c * 0x100 + d;
-    return n ? ((n >> 25) & 127) || 1 : 0;
+    return (n >> 25) & 127;
   }
   function _grp(m, g) { m.gr = g; return m; }
   function _m2m1(msg) {
     if (msg.isMidi2) {
-      var n, c;
+      var n, c, x;
       var t = msg[0] >> 4;
       var g = msg[0] & 15;
       if (t == 1 || t == 2) {
@@ -3488,6 +3686,10 @@
         }
         if (n == 13) {
           this._emit(_grp(new MIDI([msg[1], _32_7(msg[4], msg[5], msg[6], msg[7])]), g));
+        }
+        if (n == 14) {
+          x = (msg[4] * 0x1000000 + msg[5] * 0x10000 + msg[6] * 0x100 + msg[4]) >> 18;
+          this._emit(_grp(new MIDI([msg[1], x & 127, (x >> 7) & 127]), g));
         }
         else if (n == 12) {
           if (msg[3]) {
@@ -3646,6 +3848,7 @@
   JZZ.lib.copyMidi2Helpers = _copyUmpHelpers;
   JZZ.lib.copyUmpHelpers = _copyUmpHelpers;
   JZZ.lib.getAudioContext = function() { _initAudioContext(); return _ac; };
+  JZZ.lib.closeAudioContext = function() { if (_ac) _ac.close(); _ac = undefined; };
   var _b64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
   JZZ.lib.fromBase64 = function(input) {
     var output = '';

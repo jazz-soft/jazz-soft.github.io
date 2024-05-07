@@ -15,7 +15,7 @@
   /* istanbul ignore next */
   if (JZZ.MIDI.SMF) return;
 
-  var _ver = '1.8.2';
+  var _ver = '1.9.1';
 
   var _now = JZZ.lib.now;
   function _error(s) { throw new Error(s); }
@@ -44,6 +44,7 @@
     for (var i = 0; i < len; i++) s += String.fromCharCode(u[i]);
     return s;
   }
+  function _hex(x) { return (x < 16 ? '0' : '') + x.toString(16); }
 
   function SMF() {
     var self = this;
@@ -222,7 +223,10 @@
     if (typeof this.off != 'undefined') a.push('offset ' + this.off);
     if (typeof this.track != 'undefined') a.push('track ' + this.track);
     if (typeof this.tick != 'undefined') a.push('tick ' + this.tick);
-    return a.join(' ') + ' -- ' + this.msg + ' (' + this.data + ')';
+    a.push('--');
+    a.push(this.msg);
+    if (typeof this.data != 'undefined') a.push('(' + this.data + ')');
+    return a.join(' ');
   };
 
   SMF.prototype.tracks = function() {
@@ -780,19 +784,34 @@
     }
     return a.join('\n  ');
   };
-
+  function _msg(msg) {
+    if (msg.length || msg.isSMF()) return msg;
+    _error('Not a MIDI message');
+  }
   MTrk.prototype.add = function(t, msg) {
     t = parseInt(t);
     if(isNaN(t) || t < 0) _error('Invalid parameter');
-    msg = JZZ.MIDI(msg);
-    msg.tt = t;
+    var i, j;
+    var a = [];
+    try {
+      a.push(JZZ.MIDI(msg));
+    }
+    catch (e) {
+      for (i = 0; i < msg.length; i++) a.push(JZZ.MIDI(msg[i]));
+    }
+    if (!a.length) _error('Not a MIDI message');
+    for (i = 0; i < a.length; i++) _msg(a[i]);
     if (this[this._orig.length - 1].tt < t) this[this._orig.length - 1].tt = t; // end of track
     if (msg.ff == 0x2f || msg[0] > 0xf0 && msg[0] != 0xf7) return this;
-    var i;
     for (i = 0; i < this._orig.length - 1; i++) {
       if (this._orig[i].tt > t) break;
     }
-    this._orig.splice(i, 0, msg);
+    for (j = 0; j < a.length; j++) {
+      msg = a[j];
+      msg.tt = t;
+      this._orig.splice(i, 0, msg);
+      i++;
+    }
     return this;
   };
 
@@ -1326,19 +1345,45 @@
     img._tick = this._tick + t;
     return img;
   };
+  function _ump(msg) {
+    if (!msg || !msg.length) _error('Not a MIDI message');
+    var i;
+    var a = [];
+    try {
+      a.push(JZZ.UMP(msg));
+    }
+    catch (e) {
+      for (i = 0; i < msg.length; i++) {
+        if (!msg[i] || !msg[i].length) _error('Not a MIDI message');
+        a.push(JZZ.UMP(msg[i]));
+      }
+    }
+    return a;
+  }
   Clip.prototype.add = function(t, msg) {
+    var i, j, d, e;
     t = parseInt(t);
     if(isNaN(t) || t < 0) _error('Invalid parameter');
-    msg = JZZ.UMP(msg);
-    var end = this._orig[this._orig.length - 1];
-    if (end.tt < t) end.tt = t;
-    if (msg.isStartClip() || msg.isEndClip()) return this;
-    if (msg.isDelta()) return this.tick(msg.getDelta());
-    msg.tt = t;
-    var i;
-    for (i = 0; i < this._orig.length - 1; i++) if (this._orig[i].tt > t) break;
-    this._orig.splice(i, 0, msg);
-    return this;
+    var arr = _ump(msg);
+    var self = this;
+    if (this.length) e = this._orig[this._orig.length - 1];
+    if (e && !e.isEndClip()) e = undefined;
+    if (e && e.tt < t) e.tt = t;
+    for (i = 0; i < arr.length; i++) {
+      msg = arr[i];
+      if (msg.isStartClip() || msg.isEndClip()) continue;
+      if (msg.isDelta()) {
+        d = msg.getDelta();
+        t += d;
+        if (e && e.tt < t) e.tt = t;
+        self = self.tick(msg.getDelta());
+        continue;
+      }
+      msg.tt = t;
+      for (j = 0; j < this._orig.length; j++) if (this._orig[j].tt > t || this._orig[j] == e) break;
+      this._orig.splice(j, 0, msg);
+    }
+    return self;
   };
   Clip.prototype.sxId = function(id) {
     if (typeof id == 'undefined') id = Clip.prototype._sxid;
@@ -1379,18 +1424,7 @@
   ClipHdr.prototype.gr = Clip.prototype.gr;
   ClipHdr.prototype.ch = Clip.prototype.ch;
   ClipHdr.prototype.sxId = Clip.prototype.sxId;
-  ClipHdr.prototype.add = function(t, msg) {
-    t = parseInt(t);
-    if(isNaN(t) || t < 0) _error('Invalid parameter');
-    msg = JZZ.UMP(msg);
-    if (msg.isStartClip() || msg.isEndClip()) return this;
-    if (msg.isDelta()) return this.tick(msg.getDelta());
-    msg.tt = t;
-    var i;
-    for (i = 0; i < this._orig.length; i++) if (this._orig[i].tt > t) break;
-    this._orig.splice(i, 0, msg);
-    return this;
-  };
+  ClipHdr.prototype.add = Clip.prototype.add;
 
   function _copyClip(clip, x) {
     var i, m;
@@ -1413,9 +1447,8 @@
     if (s.substr(0, 8) != SMF2CLIP) {
       var z = s.indexOf(SMF2CLIP);
       if (z != -1) {
-        s = s.substr(z);
-        clip._complain(off, 'Extra leading characters', z);
         off += z;
+        clip._complain(off, 'Extra leading characters', off);
       }
       else _error('Not a clip');
     }
@@ -1431,6 +1464,12 @@
       t = s.charCodeAt(off) >> 4;
       len = [4, 4, 4, 8, 8, 16, 4, 4, 8, 8, 8, 12, 12, 16, 16, 16][t];
       a = [];
+      if (s.length < off + len) {
+        for (i = off; i < s.length; i++) a.push(_hex(s.charCodeAt(i)));
+        clip._complain(off, 'Incomplete message', a.join(' '));
+        off += len;
+        break;
+      }
       for (i = 0; i < len; i++) a.push(s.charCodeAt(off + i));
       prev = m;
       m = JZZ.UMP(a);
@@ -1440,6 +1479,10 @@
       }
       else {
         m.tt = tt;
+        m.off = off;
+        if (prev && !prev.isDelta()) {
+          clip._complain(off, "Missing Delta Ticks message", m.toString(), tt);
+        }
         if (inHdr) {
           if (m.isStartClip()) {
             tt = 0;
@@ -1478,12 +1521,62 @@
       clip._complain(off, 'Missing Ticks PQN message');
       clip.ppqn = 96;
     }
+    if (inHdr) clip._complain(off, 'No Start of Clip message');
+    else if (!ended) clip._complain(off, 'No End of Clip message');
   }
   Clip.prototype._complain = function(off, msg, data, tick) {
     if (!this._warn) this._warn = [];
     var w = { off: off, msg: msg, data: data };
     if (typeof tick != 'undefined') w.tick = tick;
     this._warn.push(w);
+  };
+  function _validate_clip(clip) {
+    var i, k, d, m;
+    var p = {};
+    for (i = 0; i < clip.length; i++) {
+      m = clip[i];
+      k = undefined;
+      if (m.isFlex()) {
+        k = (m[0] & 0xf) + (m[1] & 0x3f) * 16;
+        k = 'f' + k;
+        d = m[1] >> 6;
+      }
+      if (m.isData()) {
+        k = 'd' + (m[0] & 0xf);
+        d = (m[1] >> 4) & 3;
+      }
+      if (m.isSX()) {
+        k = 's' + (m[0] & 0xf);
+        d = (m[1] >> 4) & 3;
+      }
+      if (k) {
+        if (p[k]) {
+          if (d == 0 || d == 1) clip._complain(p[k].off, 'Missing series end', p[k].toString(), p[k].tt);
+        }
+        else {
+          if (d == 2 || d == 3) clip._complain(m.off, 'Missing series start', m.toString(), m.tt);
+        }
+        p[k] = (d == 0 || d == 3) ? undefined : m;
+      }
+    }
+    d = Object.keys(p);
+    for (i = 0; i < d.length; i++) {
+      m = p[d[i]];
+      if (m) clip._complain(m.off, 'Missing series end', m.toString(), m.tt);
+    }
+  }
+  Clip.prototype.validate = function() {
+    var i;
+    var w = [];
+    _validate_clip(this);
+    if (this._warn) for (i = 0; i < this._warn.length; i++) w.push(Warn(this._warn[i]));
+    if (w.length) {
+      for (i = 0; i < w.length; i++) w[i] = Warn(w[i]);
+      w.sort(function(a, b) {
+        return (a.off || 0) - (b.off || 0) || (a.tick || 0) - (b.tick || 0);
+      });
+      return w;
+    }
   };
 
   Clip.prototype.dump = function() {
@@ -1533,6 +1626,17 @@
     return a.join('\n');
   };
   Clip.prototype.annotate = function() {
+    var i, ctxt;
+    ctxt = JZZ.Context();
+    for (i = 0; i < this.header.length; i++) {
+      if (this.header[i].lbl) this.header[i].lbl = undefined;
+      ctxt._read(this.header[i]);
+    }
+    ctxt = JZZ.Context();
+    for (i = 0; i < this.length; i++) {
+      if (this[i].lbl) this[i].lbl = undefined;
+      ctxt._read(this[i]);
+    }
     return this;
   };
   Clip.prototype.player = function() {
