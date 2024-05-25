@@ -14,7 +14,7 @@
 })(this, function() {
 
   var _scope = typeof window === 'undefined' ? global : window;
-  var _version = '1.8.2';
+  var _version = '1.8.4';
   var i, j, k, m, n;
 
   /* istanbul ignore next */
@@ -2582,12 +2582,12 @@
             s += ss ? ' ' + ss : '';
             s += ': ';
             if (this.dd.charCodeAt(2) == 0) {
-              return s + this.dd.substr(3, 4) + ' ' + _hex(_s2a(this.dd.substr(7)));
+              return s + this.dd.substring(3, 7) + ' ' + _hex(_s2a(this.dd.substring(7)));
             }
             if (this.dd.charCodeAt(2) == 1) {
               return s + this.getText();
             }
-            return s + _hex(_s2a(this.dd.substr(3)));
+            return s + _hex(_s2a(this.dd.substring(3)));
           }
         }
         s += 'Sequencer Specific' + _smfhex(this.dd);
