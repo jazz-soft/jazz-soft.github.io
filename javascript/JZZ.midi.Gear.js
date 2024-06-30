@@ -37,7 +37,7 @@ JZZ.MIDI.prototype.gearInfo = function() {
   var ret = { brand: _v[vnd] };
   if (!_m[vnd]) return ret;
   for (var j = 8; j >= 4; j--) {
-    var m = _m[vnd][mod.substr(0, j)];
+    var m = _m[vnd][mod.substring(0, j)];
     if (m) {
       ret.model = m.m;
       ret.descr = m.d;
@@ -864,6 +864,7 @@ _m["C"] = { // Yamaha
 _m["G"] = { // Akai
 "\x15\x00\x19\x00":{m:"Push",d:"MIDI Controller"},
 "%\x00\x19\x00":{m:"MPK261",d:"Performance Keyboard Controller"},
+"P\x00\x19\x00":{m:"MPK Mini Play MK3",d:"MIDI Keyboard Controller"},
 "m\x00\x19\x00":{m:"EWI USB",d:"USB Wind Instrument"}
 };
 _m["\x01\f"] = { // Line 6
