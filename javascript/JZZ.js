@@ -14,7 +14,7 @@
 })(this, function() {
 
   var _scope = typeof window === 'undefined' ? global : window;
-  var _version = '1.8.5';
+  var _version = '1.9.2';
   var i, j, k, m, n;
 
   /* istanbul ignore next */
@@ -265,7 +265,7 @@
           x = _engine._outMap[diff.outputs.removed[j].name];
           if (x) x._closeAll();
         }
-        _fireW(diff);
+        _schedule(function() { _fireW(diff); });
       }
     }
     _insW = _jzz._info.inputs;
@@ -376,6 +376,7 @@
 
   _J.prototype._close = function() {
     _engine._close();
+    for (var i = 0; i < _plugged.length; i++) if (_plugged[i] && _plugged[i].close) _plugged[i].close();
   };
 
   // _M: MIDI-In/Out object
@@ -642,8 +643,9 @@
   }
 
   var _jzz;
-  var _engine = { _outs: [], _ins: [] };
+  var _engine = { _outs: [], _ins: [], _close: _nop };
   var _virtual = { _outs: [], _ins: [] };
+  var _plugged = [];
 
   // Node.js
   function _tryNODE() {
@@ -817,6 +819,8 @@
     _engine._sysex = true;
     _engine._outs = [];
     _engine._ins = [];
+    _engine._outMap = {};
+    _engine._inMap = {};
     _engine._refresh = function() { _postRefresh(); };
     _engine._watch = _nop;
     _engine._unwatch = _nop;
@@ -1386,6 +1390,10 @@
     return JZZ.lib.registerMidiOut(name, engine);
   };
   _J.prototype.addMidiOut = JZZ.addMidiOut;
+  JZZ.removeMidiOut = function(name) { return JZZ.lib.unregisterMidiOut(name); };
+  _J.prototype.removeMidiOut = JZZ.removeMidiOut;
+  JZZ.removeMidiIn = function(name) { return JZZ.lib.unregisterMidiIn(name); };
+  _J.prototype.removeMidiIn = JZZ.removeMidiIn;
   JZZ.maskMidiIn = function(name) { _insM[name] = true; };
   _J.prototype.maskMidiIn = JZZ.maskMidiIn;
   JZZ.unmaskMidiIn = function(name) { delete _insM[name]; };
@@ -3192,8 +3200,9 @@
     },
     umpProgram: function(g, c, n, msb, lsb) {
       return typeof msb == 'undefined' && typeof lsb == 'undefined' ?
-        [0x40 + _4b(g), 0xc0 + _ch(c), 0, 0, _7bn(n), 0, 0, 0] :
-        [0x40 + _4b(g), 0xc0 + _ch(c), 0, 1, _7bn(n), 0, _7bn(msb), _7bn(lsb)];
+        [0x40 + _4b(g), 0xc0 + _ch(c), 0, 0, _7bn(n), 0, 0, 0] : typeof lsb == 'undefined' ?
+        [0x40 + _4b(g), 0xc0 + _ch(c), 0, 1, _7bn(n), 0, _msb(msb), _lsb(msb)] :
+        [0x40 + _4b(g), 0xc0 + _ch(c), 0, 1, _7bn(n), 0, _7b(msb), _7b(lsb)];
     },
     umpPitchBend: function(g, c, x, y, z, w) {
       return [0x40 + _4b(g), 0xe0 + _ch(c), 0, 0].concat(_32a(x, y, z, w));
@@ -3740,6 +3749,7 @@
   JZZ.lib = {};
   JZZ.lib.now = _now;
   JZZ.lib.schedule = _schedule;
+  JZZ.lib.R = _R;
   var _sch_list = [];
   var _sch_worker;
   var _sch_count = 0;
@@ -3806,6 +3816,32 @@
       if (_jzz._bad) { _jzz._repair(); _jzz._resume(); }
     }
     return true;
+  };
+  JZZ.lib.unregisterMidiOut = function(name) {
+    for (var i = 0; i < _virtual._outs.length; i++) if (_virtual._outs[i].name == name) {
+      _virtual._outs.splice(i, i + 1);
+      if (_jzz) _postRefresh();
+      return true;
+    }
+    return false;
+  };
+  JZZ.lib.unregisterMidiIn = function(name) {
+    for (var i = 0; i < _virtual._ins.length; i++) if (_virtual._ins[i].name == name) {
+      _virtual._ins.splice(i, i + 1);
+      if (_jzz) _postRefresh();
+      return true;
+    }
+    return false;
+  };
+  JZZ.lib.plug = function(x) {
+    for (var i = 0; i < _plugged.length; i++) if (_plugged[i] == x) return;
+    _plugged.push(x);
+  };
+  JZZ.lib.unplug = function(x) {
+    for (var i = 0; i < _plugged.length; i++) if (_plugged[i] == x) {
+      _plugged.splice(i, 1);
+      return;
+    }
   };
   var _ac;
   function _initAudioContext() {
