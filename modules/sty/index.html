@@ -3,6 +3,7 @@
 <head>
 <title>Style View</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="../../style.css" />
 <script src="https://cdn.jsdelivr.net/npm/jzz"></script>
 <script src="https://cdn.jsdelivr.net/npm/jzz-midi-smf"></script>
 <script src="https://cdn.jsdelivr.net/npm/jzz-midi-sty"></script>
@@ -19,7 +20,7 @@
 
 <body>
 
-<h1>Style View</h1>
+<h1><span id="qr"><a id="qrcode"></a></span> Style View</h1>
 <p id=panel>Please enable JavaScript!</p>
 
 <hr>
@@ -295,6 +296,7 @@ function populate_fnrc() {
 }
 function noteName(n) { return JZZ.MIDI.STY.noteName(n % 12) + Math.floor(n / 12); }
 </script>
-
+<script src="https://cdn.jsdelivr.net/npm/qr-min"></script>
+<script src="../../javascript/common.js"></script>
 </body>
 </html>

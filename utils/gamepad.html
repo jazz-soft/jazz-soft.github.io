@@ -3,10 +3,11 @@
 <head>
 <title>Gamepad Events</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="../style.css" />
 </head>
 
 <body>
-<h1>Gamepad Events</h1>
+<h1><span id="qr"><a id="qrcode"></a></span> Gamepad Events</h1>
 <pre id=log>
 No gamepad devices detected.
 </pre>
@@ -41,5 +42,7 @@ window.addEventListener("gamepaddisconnected", function(e) {
 <p>
 <a href=index.html>Back</a>
 </p>
+<script src="https://cdn.jsdelivr.net/npm/qr-min"></script>
+<script src="../javascript/common.js"></script>
 </body>
 </html>

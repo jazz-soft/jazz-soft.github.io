@@ -3,9 +3,10 @@
 <head>
 <title>User Agent</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="../style.css" />
 </head>
 <body>
-<h1>User Agent</h1>
+<h1><span id="qr"><a id="qrcode"></a></span> User Agent</h1>
 <div id=out><p>JavaScript is disabled</p></div>
 <script><!--
 var out = document.getElementById('out');
@@ -16,5 +17,7 @@ out.innerHTML = typeof navigator === 'undefined' ? '<p>navigator is undefined</p
 <p>
 <a href=index.html>Back</a>
 </p>
+<script src="https://cdn.jsdelivr.net/npm/qr-min"></script>
+<script src="../javascript/common.js"></script>
 </body>
 </html>

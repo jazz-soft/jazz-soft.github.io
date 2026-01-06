@@ -3,6 +3,7 @@
 <head>
 <title>JZZ.synth.OSC demo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="../../style.css" />
 <script src="../../javascript/JZZ.js"></script>
 <script src="../../javascript/JZZ.synth.OSC.js"></script>
 <script><!--
@@ -38,7 +39,7 @@ function play() {
 </head>
 
 <body>
-<h1>JZZ.synth.OSC demo</h1>
+<h1><span id="qr"><a id="qrcode"></a></span> JZZ.synth.OSC demo</h1>
 <button onclick='play();'>Press to play!</button>
 <p id=note>
 </p>
@@ -46,6 +47,7 @@ function play() {
 var ac = window.AudioContext || window.webkitAudioContext;
 if (!ac) document.getElementById('note').innerHTML = 'NOTE: This browser does not support AudioContext.';
 --></script>
-
+<script src="https://cdn.jsdelivr.net/npm/qr-min"></script>
+<script src="../../javascript/common.js"></script>
 </body>
 </html>

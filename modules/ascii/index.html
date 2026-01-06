@@ -3,6 +3,7 @@
 <head>
 <title>JZZ.input.ASCII demo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<link rel="stylesheet" type="text/css" href="../../style.css" />
 <style type="text/css">
 .inner {position:absolute; bottom:0; left:0; width:100%; text-align:center;}
 </style>
@@ -12,7 +13,7 @@
 </head>
 
 <body>
-<h1>JZZ.input.ASCII demo</h1>
+<h1><span id="qr"><a id="qrcode"></a></span> JZZ.input.ASCII demo</h1>
 <p id=piano></p>
 <p>JZZ.input.ASCII -&gt; JZZ.input.Kbd -&gt; MIDI Out</p>
 
@@ -41,6 +42,7 @@ JZZ.input.ASCII({Z:'C5', S:'C#5', X:'D5', D:'D#5', C:'E5', V:'F5', G:'F#5', B:'G
 <p>
 <a href=../index.html>Back</a>
 </p>
-
+<script src="https://cdn.jsdelivr.net/npm/qr-min"></script>
+<script src="../../javascript/common.js"></script>
 </body>
 </html>

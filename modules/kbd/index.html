@@ -3,13 +3,14 @@
 <head>
 <title>JZZ.input.Kbd demo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<link rel="stylesheet" type="text/css" href="../../style.css" />
 <script src="../../javascript/JZZ.js"></script>
 <script src="../../javascript/JZZ.synth.Tiny.js"></script>
 <script src="../../javascript/JZZ.input.Kbd.js"></script>
 </head>
 
 <body>
-<h1>JZZ.input.Kbd demo</h1>
+<h1><span id="qr"><a id="qrcode"></a></span> JZZ.input.Kbd demo</h1>
 <p id=piano></p>
 <p>Resize the window to see the responsiveness...</p>
 
@@ -49,6 +50,7 @@ JZZ.input.Kbd({at:'piano', from:'C5', to:'B5',
 <p>
 <a href=../index.html>Back</a>
 </p>
-
+<script src="https://cdn.jsdelivr.net/npm/qr-min"></script>
+<script src="../../javascript/common.js"></script>
 </body>
 </html>

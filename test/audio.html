@@ -3,10 +3,11 @@
 <head>
 <title>MIDI-Player Test: &lt;audio&gt;</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="../style.css" />
 </head>
 
 <body>
-<h1>MIDI-Player Test: &lt;audio&gt;</h1>
+<h1><span id="qr"><a id="qrcode"></a></span> MIDI-Player Test: &lt;audio&gt;</h1>
 
 <audio src="test.mid" autoplay controls="controls">
 Your browser does not support the <code>audio</code> element.
@@ -23,6 +24,7 @@ Your browser does not support the audio element.
 
 <div><a href=https://developer.mozilla.org/en-US/docs/Web/HTML/Element/audio>&lt;audio&gt; @ MDN web docs</a></div>
 <p><a href=midi-player.html>Back</a></p>
-
+<script src="https://cdn.jsdelivr.net/npm/qr-min"></script>
+<script src="../javascript/common.js"></script>
 </body>
 </html>

@@ -3,6 +3,7 @@
 <head>
 <title>JZZ test</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="../style.css" />
 <script src="../javascript/JZZ.js"></script>
 <script src="../javascript/JZZ.synth.Tiny.js"></script>
 <script src="../javascript/JZZ.input.Kbd.js"></script>
@@ -13,7 +14,7 @@
 </head>
 
 <body>
-<h1>JZZ <span id="jzzVersion">0.0</span> test</h1>
+<h1><span id="qr"><a id="qrcode"></a></span> JZZ <span id="jzzVersion">0.0</span> test</h1>
 
 <p>This page may require additional software. Please see more <a href=https://jazz-soft.net/doc/JZZ/>details</a>...</p>
 
@@ -124,6 +125,7 @@ JZZ().or(function(){
     }
   });
 --></script>
-
+<script src="https://cdn.jsdelivr.net/npm/qr-min"></script>
+<script src="../javascript/common.js"></script>
 </body>
 </html>

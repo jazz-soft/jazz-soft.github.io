@@ -3,6 +3,7 @@
 <head>
 <title>JZZ.synth.Timbre demo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="../../style.css" />
 <script src="../../javascript/timbre.js"></script>
 <script src="../../javascript/JZZ.js"></script>
 <script src="../../javascript/JZZ.synth.Timbre.js"></script>
@@ -52,7 +53,7 @@ function play3() {
 </head>
 
 <body>
-<h1>JZZ.synth.Timbre demo</h1>
+<h1><span id="qr"><a id="qrcode"></a></span> JZZ.synth.Timbre demo</h1>
 
 <p>
 <em>Note:</em> <a href=https://github.com/mohayonao/timbre.js>Timbre.js</a> is out of date and no longer supported by its authors.
@@ -73,6 +74,7 @@ if (!ac) document.getElementById('note').innerHTML = 'NOTE: This browser does no
 <p>
 <a href=../index.html>Back</a>
 </p>
-
+<script src="https://cdn.jsdelivr.net/npm/qr-min"></script>
+<script src="../../javascript/common.js"></script>
 </body>
 </html>

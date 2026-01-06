@@ -3,6 +3,7 @@
 <head>
 <title>Touch Events</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="../style.css" />
 <style type="text/css">
 #pad {
  width:100%;
@@ -37,7 +38,7 @@
 
 </head>
 <body>
-<h1>Touch Events</h1>
+<h1><span id="qr"><a id="qrcode"></a></span> Touch Events</h1>
 
 <div id=pad><div id=log>JavaScript is disabled</div></div>
 
@@ -83,5 +84,7 @@ log.innerHTML = "";
 <p>
 <a href=index.html>Back</a>
 </p>
+<script src="https://cdn.jsdelivr.net/npm/qr-min"></script>
+<script src="../javascript/common.js"></script>
 </body>
 </html>

@@ -3,6 +3,7 @@
 <head>
 <title>JZZ WebMIDI test</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="../style.css" />
 <script src="../javascript/JZZ.js"></script>
 <script><!--
 function player(name) {
@@ -28,7 +29,7 @@ function listen(name) {
 </head>
 
 <body>
-<h1>JZZ <span id="jzzVersion">0.0</span> WebMIDI test</h1>
+<h1><span id="qr"><a id="qrcode"></a></span> JZZ <span id="jzzVersion">0.0</span> WebMIDI test</h1>
 <p>This page requires Web MIDI API.</p>
 <div id=out></div>
 <pre id="midiIn">
@@ -80,6 +81,7 @@ JZZ({engine:'webmidi'}).or(function(){
     }
   });
 --></script>
-
+<script src="https://cdn.jsdelivr.net/npm/qr-min"></script>
+<script src="../javascript/common.js"></script>
 </body>
 </html>

@@ -3,6 +3,7 @@
 <head>
 <title>JZZ.midi.SMF demo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="../../style.css" />
 <script src="https://cdn.jsdelivr.net/npm/jzz"></script>
 <script src="https://cdn.jsdelivr.net/npm/jzz-midi-smf"></script>
 <script src="https://cdn.jsdelivr.net/npm/jzz-gui-player"></script>
@@ -10,7 +11,7 @@
 </head>
 
 <body>
-<h1>JZZ.midi.SMF demo</h1>
+<h1><span id="qr"><a id="qrcode"></a></span> JZZ.midi.SMF demo</h1>
 <p id=player></p>
 <p>
 <em>NOTE:</em> For better sound quality, you may want to install the
@@ -335,6 +336,7 @@ var player = new JZZ.gui.Player({ at: 'player', file: true });
 player.onLoad = function(smf) { player.play(); }
 player.load(smf);
 --></script>
-
+<script src="https://cdn.jsdelivr.net/npm/qr-min"></script>
+<script src="../../javascript/common.js"></script>
 </body>
 </html>

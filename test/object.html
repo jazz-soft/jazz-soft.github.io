@@ -3,10 +3,11 @@
 <head>
 <title>MIDI-Player Test: &lt;object&gt;</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="../style.css" />
 </head>
 
 <body>
-<h1>MIDI-Player Test: &lt;object&gt;</h1>
+<h1><span id="qr"><a id="qrcode"></a></span> MIDI-Player Test: &lt;object&gt;</h1>
 
 <object data="test.mid"><param name="loop" value="10"/>
 If you're seeing this, you don't have a MIDI player
@@ -15,6 +16,7 @@ on your computer.
 
 <div><a href=https://developer.mozilla.org/en-US/docs/Web/HTML/Element/object>&lt;object&gt; @ MDN web docs</a></div>
 <p><a href=midi-player.html>Back</a></p>
-
+<script src="https://cdn.jsdelivr.net/npm/qr-min"></script>
+<script src="../javascript/common.js"></script>
 </body>
 </html>

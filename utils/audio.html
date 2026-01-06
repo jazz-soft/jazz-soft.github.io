@@ -3,9 +3,10 @@
 <head>
 <title>Web Audio & MIDI</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="../style.css" />
 </head>
 <body>
-<h1>Web Audio & MIDI</h1>
+<h1><span id="qr"><a id="qrcode"></a></span> Web Audio & MIDI</h1>
 <div id=out><p>JavaScript is disabled</p></div>
 <script><!--
 var out = document.getElementById('out');
@@ -42,5 +43,7 @@ out.innerHTML = audio + midi;
 <p>
 <a href=index.html>Back</a>
 </p>
+<script src="https://cdn.jsdelivr.net/npm/qr-min"></script>
+<script src="../javascript/common.js"></script>
 </body>
 </html>

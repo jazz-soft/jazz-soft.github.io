@@ -3,6 +3,7 @@
 <head>
 <title>JZZ.input.Qwerty demo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="../../style.css" />
 <script src="../../javascript/JZZ.js"></script>
 <script src="../../javascript/JZZ.synth.Tiny.js"></script>
 <script src="../../javascript/qwerty-hancock.js"></script>
@@ -10,7 +11,7 @@
 </head>
 
 <body>
-<h1>JZZ.input.Qwerty demo</h1>
+<h1><span id="qr"><a id="qrcode"></a></span> JZZ.input.Qwerty demo</h1>
 <p id=qwerty>
 </p>
 
@@ -24,6 +25,7 @@ JZZ.input.Qwerty({ id: 'qwerty', width: 281, height: 150, octaves: 1, startNote:
 <p>
 <a href=../index.html>Back</a>
 </p>
-
+<script src="https://cdn.jsdelivr.net/npm/qr-min"></script>
+<script src="../../javascript/common.js"></script>
 </body>
 </html>

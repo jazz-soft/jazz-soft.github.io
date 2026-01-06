@@ -3,13 +3,14 @@
 <head>
 <title>Keyboard Events</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="../style.css" />
 <style type="text/css">
 pre {background-color:#ddd;}
 pre:focus {background-color:#ff0;}
 </style>
 </head>
 <body>
-<h1>Keyboard Events</h1>
+<h1><span id="qr"><a id="qrcode"></a></span> Keyboard Events</h1>
 <pre id=input tabindex=1>
 Type here...
 </pre>
@@ -42,5 +43,7 @@ input.addEventListener("keyup", onKeyup, false);
 <p>
 <a href=index.html>Back</a>
 </p>
+<script src="https://cdn.jsdelivr.net/npm/qr-min"></script>
+<script src="../javascript/common.js"></script>
 </body>
 </html>

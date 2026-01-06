@@ -3,16 +3,18 @@
 <head>
 <title>MIDI-Player Test: &lt;embed&gt;</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="../style.css" />
 </head>
 
 <body>
-<h1>MIDI-Player Test: &lt;embed&gt;</h1>
+<h1><span id="qr"><a id="qrcode"></a></span> MIDI-Player Test: &lt;embed&gt;</h1>
 
 <embed src="test.mid" autostart="true" autoplay="true">
 <embed src="test.mid" autostart="true" width=200 height=50>
 
 <div><a href=https://developer.mozilla.org/en-US/docs/Web/HTML/Element/embed>&lt;embed&gt; @ MDN web docs</a></div>
 <p><a href=midi-player.html>Back</a></p>
-
+<script src="https://cdn.jsdelivr.net/npm/qr-min"></script>
+<script src="../javascript/common.js"></script>
 </body>
 </html>
