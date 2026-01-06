@@ -14,7 +14,7 @@
 })(this, function() {
 
   var _scope = typeof window === 'undefined' ? global : window;
-  var _version = '1.9.2';
+  var _version = '1.9.6';
   var i, j, k, m, n;
 
   /* istanbul ignore next */
@@ -376,7 +376,11 @@
 
   _J.prototype._close = function() {
     _engine._close();
-    for (var i = 0; i < _plugged.length; i++) if (_plugged[i] && _plugged[i].close) _plugged[i].close();
+    var a = _plugged.slice();
+    for (var i = 0; i < a.length; i++) if (a[i]) {
+      if (a[i]._close) a[i]._close();
+      else if (a[i].close) a[i].close();
+    }
   };
 
   // _M: MIDI-In/Out object
@@ -742,7 +746,7 @@
         msg.innerText = '';
       }
       document.removeEventListener('jazz-midi-msg', eventHandle);
-      if (a[0] === 'version') {
+      if (a && a[0] === 'version') {
         _initCRX(msg, a[2]);
         self._resume();
       }
