@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Microphone</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<style>
+canvas {display:block;border:1px solid;}
+</style>
+</head>
+<body>
+
+<h1><span id="qr"><a id="qrcode"></a></span> Microphone</h1>
+<p>
+<button id="btn">start</button>
+</p><p>
+<canvas id="can"></canvas>
+</p><p>
+<a href=index.html>Back</a>
+</p>
+
+<script>
+var audioCtx;
+var running;
+var btn = document.getElementById('btn');
+var canvas = document.getElementById('can');
+var ctx2d = canvas.getContext('2d');
+var animationId;
+
+async function start() {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+	stream = await navigator.mediaDevices.getUserMedia({
+		audio: true,
+		echoCancellation: false,
+		noiseSuppression: false,
+		autoGainControl: false
+	});
+	micSource = audioCtx.createMediaStreamSource(stream);
+	analyser = audioCtx.createAnalyser();
+	analyser.fftSize = 2048;
+	analyser.smoothingTimeConstant = 0.8;
+	micSource.connect(analyser);
+	running = true;
+  btn.innerHTML = 'stop';
+	draw();
+}
+function stop() {
+  if (audioCtx) {
+    audioCtx.close();
+    audioCtx = null;
+  }
+  btn.innerHTML = 'start';
+  running = false;
+}
+btn.addEventListener("click", function() {
+  if (running) stop();
+  else start().catch(function (err) {
+		console.error(err);
+		alert("Microphone access failed.");
+	});
+});
+function draw() {
+	if (!running) return;
+	const bufferLength = analyser.frequencyBinCount;
+	const data = new Uint8Array(bufferLength);
+	analyser.getByteFrequencyData(data);
+	ctx2d.fillStyle = "#fff";
+	ctx2d.fillRect(0, 0, canvas.width, canvas.height);
+	const barWidth = canvas.width / bufferLength;
+	for (let i = 0; i < bufferLength; i++) {
+		const value = data[i];
+		const height = (value / 255) * canvas.height;
+		ctx2d.fillStyle = "#333";
+		ctx2d.fillRect(
+			i * barWidth,
+			canvas.height - height,
+			barWidth,
+			height
+		);
+	}
+	animationId = requestAnimationFrame(draw);
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/qr-min"></script>
+<script src="../javascript/common.js"></script>
+</body>
+</html>
