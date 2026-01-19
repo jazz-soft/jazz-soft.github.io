@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Microphone</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="../style.css" />
+<style>
+canvas {display:block;border:1px solid;}
+</style>
+</head>
+<body>
+
+<h1><span id="qr"><a id="qrcode"></a></span> Microphone</h1>
+<p>
+<button id="btn">start</button>
+</p><p>
+<canvas id="can1"></canvas>
+</p><p>
+<canvas id="can2"></canvas>
+</p><p>
+<a href=index.html>Back</a>
+</p>
+
+<script>
+var audioCtx;
+var running;
+var btn = document.getElementById('btn');
+var can1 = document.getElementById('can1');
+var can2 = document.getElementById('can2');
+var ctx1 = can1.getContext('2d');
+var ctx2 = can2.getContext('2d');
+var animationId;
+
+async function start() {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  stream = await navigator.mediaDevices.getUserMedia({
+    audio: true,
+    echoCancellation: false,
+    noiseSuppression: false,
+    autoGainControl: false
+  });
+  micSource = audioCtx.createMediaStreamSource(stream);
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 2048;
+  analyser.smoothingTimeConstant = 0.8;
+  micSource.connect(analyser);
+  running = true;
+  btn.innerHTML = 'stop';
+  draw();
+}
+function stop() {
+  if (audioCtx) {
+    audioCtx.close();
+    audioCtx = null;
+  }
+  btn.innerHTML = 'start';
+  running = false;
+}
+btn.addEventListener("click", function() {
+  if (running) stop();
+  else start().catch(function (err) {
+    console.error(err);
+    alert("Microphone access failed.");
+  });
+});
+function draw() {
+  if (!running) return;
+  const bufferLength = analyser.frequencyBinCount;
+  const data1 = new Uint8Array(bufferLength);
+  const data2 = new Uint8Array(bufferLength);
+  analyser.getByteTimeDomainData(data1);
+  analyser.getByteFrequencyData(data2);
+
+  ctx1.fillStyle = "#fff";
+  ctx1.fillRect(0, 0, can1.width, can1.height);
+  ctx1.strokeStyle = "#000";
+  ctx1.lineWidth = 2;
+  ctx1.beginPath();
+  var dx = can1.width / bufferLength;
+  var x = 0, y;
+  var i;
+  for (i = 0; i < bufferLength; i++) {
+    y = can1.height / 2 + (data1[i] - 128) / 128 * can1.height / 2;
+    if (i === 0) ctx1.moveTo(x, y);
+    else ctx1.lineTo(x, y);
+    x += dx;
+  }
+  ctx1.stroke();
+  ctx2.fillStyle = "#fff";
+  ctx2.fillRect(0, 0, can1.width, can1.height);
+  dx = can2.width / bufferLength;
+  for (i = 0; i < bufferLength; i++) {
+    y = (data2[i] / 255) * can2.height;
+    ctx2.fillStyle = "#333";
+    ctx2.fillRect(i * dx, can2.height - y, dx, y);
+  }
+  animationId = requestAnimationFrame(draw);
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/qr-min"></script>
+<script src="../javascript/common.js"></script>
+</body>
+</html>

@@ -16,7 +16,7 @@
     "jzz-midi-smf": "^1.9.9",
     "jzz-midi-sty": "^0.1.0",
     "jzz-synth-tiny": "^1.4.4",
-    "rollup": "^4.54.0"
+    "rollup": "^4.55.1"
   },
   "private": true,
   "dependencies": {

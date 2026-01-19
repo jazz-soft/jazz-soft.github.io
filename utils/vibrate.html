@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Vibrate</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="../style.css" />
+</head>
+<body>
+
+<h1><span id="qr"><a id="qrcode"></a></span> Vibrate</h1>
+<p>
+<button id="vib">Vibrate!</button>
+</p><p>
+This is supposed to work only on Android devices...
+</p><p>
+<a href=index.html>Back</a>
+</p>
+
+<script>
+document.getElementById('vib').addEventListener('click', function() {
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200])
+  else alert('Vibration API not supported on this device.');
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/qr-min"></script>
+<script src="../javascript/common.js"></script>
+</body>
+</html>
