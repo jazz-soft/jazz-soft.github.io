@@ -96,6 +96,21 @@ function draw() {
   }
   animationId = requestAnimationFrame(draw);
 }
+function autoCorrelate(buffer, sampleRate) {
+  var i, j, n, x;
+  const a = new Array(buffer.length).fill(0);
+  for (i = 0; i < buffer.length; i++) {
+    for (j = 0; j < buffer.length - i; j++) {
+      a[i] += buffer[j] * buffer[j + i];
+    }
+  }
+  n = 0; x = 0;
+
+  for (i = 0; i < buffer.length; i++) if (a[i] > x) { n = i; x = a[i]; }
+
+  return sampleRate / (n + 1);
+}
+
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/qr-min"></script>

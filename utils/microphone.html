@@ -13,6 +13,8 @@ canvas {display:block;border:1px solid;}
 <h1><span id="qr"><a id="qrcode"></a></span> Microphone</h1>
 <p>
 <button id="btn">start</button>
+</p><p id="rate">
+&nbsp;
 </p><p>
 <canvas id="can1"></canvas>
 </p><p>
@@ -25,6 +27,7 @@ canvas {display:block;border:1px solid;}
 var audioCtx;
 var running;
 var btn = document.getElementById('btn');
+var rate = document.getElementById('rate');
 var can1 = document.getElementById('can1');
 var can2 = document.getElementById('can2');
 var ctx1 = can1.getContext('2d');
@@ -40,6 +43,7 @@ async function start() {
     autoGainControl: false
   });
   micSource = audioCtx.createMediaStreamSource(stream);
+  rate.innerHTML = 'Sample rate: ' + audioCtx.sampleRate;
   analyser = audioCtx.createAnalyser();
   analyser.fftSize = 2048;
   analyser.smoothingTimeConstant = 0.8;
