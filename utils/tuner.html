@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Microphone</title>
+<title>Tuner</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" type="text/css" href="../style.css" />
 <style>
@@ -10,13 +10,13 @@ canvas {display:block;border:1px solid;}
 </head>
 <body>
 
-<h1><span id="qr"><a id="qrcode"></a></span> Microphone</h1>
+<h1><span id="qr"><a id="qrcode"></a></span> Tuner</h1>
 <p>
 <button id="btn">start</button>
 </p><p>
-<canvas id="can1"></canvas>
-</p><p>
-<canvas id="can2"></canvas>
+<canvas id="can"></canvas>
+</p><p id="out">
+--
 </p><p>
 <a href=index.html>Back</a>
 </p>
@@ -25,10 +25,9 @@ canvas {display:block;border:1px solid;}
 var audioCtx;
 var running;
 var btn = document.getElementById('btn');
-var can1 = document.getElementById('can1');
-var can2 = document.getElementById('can2');
-var ctx1 = can1.getContext('2d');
-var ctx2 = can2.getContext('2d');
+var out = document.getElementById('out');
+var can = document.getElementById('can');
+var ctx = can.getContext('2d');
 var animationId;
 
 async function start() {
@@ -66,49 +65,49 @@ btn.addEventListener("click", function() {
 function draw() {
   if (!running) return;
   const bufferLength = analyser.frequencyBinCount;
-  const data1 = new Uint8Array(bufferLength);
-  const data2 = new Uint8Array(bufferLength);
-  analyser.getByteTimeDomainData(data1);
-  analyser.getByteFrequencyData(data2);
+  const buffer = new Float32Array(bufferLength);
+  analyser.getFloatTimeDomainData(buffer);
 
-  ctx1.fillStyle = "#fff";
-  ctx1.fillRect(0, 0, can1.width, can1.height);
-  ctx1.strokeStyle = "#000";
-  ctx1.lineWidth = 2;
-  ctx1.beginPath();
-  var dx = can1.width / bufferLength;
+  const data = new Uint8Array(bufferLength);
+  analyser.getByteTimeDomainData(data);
+
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, can.width, can.height);
+  ctx.strokeStyle = "#000";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  var dx = can.width / bufferLength;
   var x = 0, y;
   var i;
   for (i = 0; i < bufferLength; i++) {
-    y = can1.height / 2 + (data1[i] - 128) / 128 * can1.height / 2;
-    if (i === 0) ctx1.moveTo(x, y);
-    else ctx1.lineTo(x, y);
+    y = can.height / 2 + (data[i] - 128) / 128 * can.height / 2;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
     x += dx;
   }
-  ctx1.stroke();
-  ctx2.fillStyle = "#fff";
-  ctx2.fillRect(0, 0, can1.width, can1.height);
-  dx = can2.width / bufferLength;
-  for (i = 0; i < bufferLength; i++) {
-    y = (data2[i] / 255) * can2.height;
-    ctx2.fillStyle = "#333";
-    ctx2.fillRect(i * dx, can2.height - y, dx, y);
-  }
+  ctx.stroke();
+  out.innerHTML = autoCorrelate(buffer, audioCtx.sampleRate);
   animationId = requestAnimationFrame(draw);
 }
 function autoCorrelate(buffer, sampleRate) {
   var i, j, n, x;
   const a = new Array(buffer.length).fill(0);
+  var m = 0;
+  for (i = 0; i < buffer.length; i++) {
+    if (m < buffer[i]) m = buffer[i];
+  }
+  x = 0;
+  for (i = 0; i < buffer.length; i++) x += buffer[i] * buffer[i];
+  if (x < 0.02) return '==';
   for (i = 0; i < buffer.length; i++) {
     for (j = 0; j < buffer.length - i; j++) {
       a[i] += buffer[j] * buffer[j + i];
     }
   }
-  n = 0; x = 0;
-
-  for (i = 0; i < buffer.length; i++) if (a[i] > x) { n = i; x = a[i]; }
-
-  return sampleRate / (n + 1);
+  for (n = 10; n < buffer.length; n++) if (a[n] > a[n - 1]) break;
+  x = a[n];
+  for (i = n; i < buffer.length; i++) if (a[i] > x) { n = i; x = a[i]; }
+  return sampleRate / n;
 }
 
 </script>
