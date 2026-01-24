@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Frame rate</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="../style.css" />
+</head>
+<body>
+
+<h1><span id="qr"><a id="qrcode"></a></span> Frame rate</h1>
+<p id="out">
+One moment please...
+</p><p>
+<a href=index.html>Back</a>
+</p>
+
+<script>
+var out = document.getElementById('out');
+var N = 100;
+var t0 = null;
+var count = 0;
+requestAnimationFrame(frame);
+function frame(ts) {
+  if (!count) t0 = ts;
+  count++;
+  if (count > N) {
+    out.innerHTML = 'requestAnimationFrame rate: ' + ((ts - t0) / N).toFixed(2) + 'ms (' + (1000 / (((ts - t0) / N))).toFixed(2) + 'hz)';
+  }
+  else requestAnimationFrame(frame);
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/qr-min"></script>
+<script src="../javascript/common.js"></script>
+</body>
+</html>
