@@ -28,6 +28,7 @@ var can = document.getElementById('can');
 var ctx = can.getContext('2d');
 var animationId;
 var note = ['A', 'A♯/B♭', 'B', 'C', 'C♯/D♭', 'D', 'D♯/E♭', 'E', 'F', 'F♯/G♭', 'G', 'G♯/A♭'];
+var micSource, lp, hp, analyser;
 async function start() {
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   stream = await navigator.mediaDevices.getUserMedia({
@@ -36,11 +37,20 @@ async function start() {
     noiseSuppression: false,
     autoGainControl: false
   });
+
   micSource = audioCtx.createMediaStreamSource(stream);
+  hp = audioCtx.createBiquadFilter();
+  hp.type = "highpass";
+  hp.frequency.value = 30;
+  hp.Q.value = 0.7;
+  lp = audioCtx.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.value = 1200;
+  lp.Q.value = 0.7;
   analyser = audioCtx.createAnalyser();
-  analyser.fftSize = 2048;
-  analyser.smoothingTimeConstant = 0.8;
-  micSource.connect(analyser);
+  analyser.fftSize = 8192;
+  analyser.smoothingTimeConstant = 0;
+  micSource.connect(hp).connect(lp).connect(analyser);
   running = true;
   btn.innerHTML = 'stop';
   update();
@@ -66,19 +76,19 @@ function update() {
   const buffer = new Float32Array(bufferLength);
   analyser.getFloatTimeDomainData(buffer);
 
-  const data = new Uint8Array(bufferLength);
-  analyser.getByteTimeDomainData(data);
+  const data = new Float32Array(bufferLength);
+  analyser.getFloatTimeDomainData(data);
 
   ctx.fillStyle = "#fff";
   ctx.fillRect(0, 0, can.width, can.height);
   ctx.strokeStyle = "#000";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  var dx = can.width / bufferLength;
+  var dx = 1; // can.width / bufferLength;
   var x = 0, y;
   var i;
-  for (i = 0; i < bufferLength; i++) {
-    y = can.height / 2 + (data[i] - 128) / 128 * can.height / 2;
+  for (i = 0; i < can.width; i++) {
+    y = can.height / 2 + data[i] * can.height / 2;
     if (i === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
     x += dx;
@@ -116,7 +126,7 @@ function autoCorrelate(buffer, sampleRate) {
   }
   x = 0;
   for (i = 0; i < buffer.length; i++) x += buffer[i] * buffer[i];
-  if (x < 0.1) return;
+  if (x < 1) return;
   for (i = 0; i < buffer.length; i++) {
     for (j = 0; j < buffer.length - i; j++) {
       a[i] += buffer[j] * buffer[j + i];
