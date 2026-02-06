@@ -70,14 +70,23 @@ btn.addEventListener("click", function() {
     alert("Microphone access failed.");
   });
 });
+const width = can.width;
+var wave = new Float32Array(width);
+function adjust(data) {
+  const sz = 2048;
+  const a = new Array(sz).fill(0);
+  var i, j;
+  for (i = 0; i < sz; i++) for (j = 0; j < width; j++) a[i] += data[i + j] * (wave[j] - j / width);
+  j = 0;
+  for (i = 0; i < sz; i++) if (a[i] > a[j]) j = i;
+  wave = data.slice(j, j + width);
+}
 function update() {
   if (!running) return;
   const bufferLength = analyser.frequencyBinCount;
-  const buffer = new Float32Array(bufferLength);
-  analyser.getFloatTimeDomainData(buffer);
-
   const data = new Float32Array(bufferLength);
   analyser.getFloatTimeDomainData(data);
+  adjust(data);
 
   ctx.fillStyle = "#fff";
   ctx.fillRect(0, 0, can.width, can.height);
@@ -88,13 +97,13 @@ function update() {
   var x = 0, y;
   var i;
   for (i = 0; i < can.width; i++) {
-    y = can.height / 2 + data[i] * can.height / 2;
+    y = can.height / 2 + wave[i] * can.height / 2;
     if (i === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
     x += dx;
   }
   ctx.stroke();
-  var f = median(autoCorrelate(buffer, audioCtx.sampleRate));
+  var f = median(autoCorrelate(data, audioCtx.sampleRate));
   if (f) {
     var z = Math.log2(f / 440);
     z = (z - Math.floor(z)) * 12;
