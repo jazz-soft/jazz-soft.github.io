@@ -48,7 +48,7 @@ async function start() {
   lp.frequency.value = 1200;
   lp.Q.value = 0.7;
   analyser = audioCtx.createAnalyser();
-  analyser.fftSize = 8192;
+  analyser.fftSize = 2048;
   analyser.smoothingTimeConstant = 0;
   micSource.connect(hp).connect(lp).connect(analyser);
   running = true;

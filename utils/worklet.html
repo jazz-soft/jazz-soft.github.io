@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Worklet Tuner Example</title>
+</head>
+<body>
+  <h1>Worklet Tuner Demo</h1>
+  <button id="start">Start Tuner</button>
+  <p>Open console to see detected pitch (Hz)</p>
+
+  <script type="module">
+    const startBtn = document.getElementById('start');
+
+    startBtn.onclick = async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const audioCtx = new AudioContext();
+
+      // Create filter: 30Hz-1200Hz
+      const hp = audioCtx.createBiquadFilter();
+      hp.type = "highpass";
+      hp.frequency.value = 30;
+      hp.Q.value = 0.7;
+
+      const lp = audioCtx.createBiquadFilter();
+      lp.type = "lowpass";
+      lp.frequency.value = 1200;
+      lp.Q.value = 0.7;
+
+      const source = audioCtx.createMediaStreamSource(stream);
+      source.connect(hp).connect(lp);
+
+      // Load AudioWorklet
+      await audioCtx.audioWorklet.addModule('pitch-processor.js');
+
+      const workletNode = new AudioWorkletNode(audioCtx, 'pitch-processor');
+      lp.connect(workletNode).connect(audioCtx.destination);
+    };
+  </script>
+</body>
+</html>
